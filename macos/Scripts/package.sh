@@ -78,4 +78,14 @@ cat > "${APP_DIR}/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
+# Ad-hoc sign inside-out (framework, then bundle) so the signature seals
+# resources. Without it the unsealed bundle reads as "damaged" once quarantined.
+echo "==> Code signing (ad-hoc)…"
+FRAMEWORK="${RES_DIR}/MediaRemoteAdapter/MediaRemoteAdapter.framework"
+if [ -d "${FRAMEWORK}" ]; then
+    codesign --force --sign - "${FRAMEWORK}"
+fi
+codesign --force --sign - "${APP_DIR}"
+codesign --verify --strict --verbose=2 "${APP_DIR}"
+
 echo "==> Done: ${APP_DIR}"
