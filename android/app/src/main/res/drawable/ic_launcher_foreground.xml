@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive-icon foreground: the white PodSwitch mark (swap arrows + bud),
+     scaled to sit inside the adaptive-icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <group
+        android:name="mark"
+        android:pivotX="512"
+        android:pivotY="512"
+        android:scaleX="0.92"
+        android:scaleY="0.92">
+        <!-- two chasing swap arcs -->
+        <path
+            android:pathData="M329,445 A195,195 0 0 1 695,445"
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="58"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M695,579 A195,195 0 0 1 329,579"
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="58"
+            android:strokeLineCap="round" />
+        <!-- arrowheads -->
+        <path android:pathData="M720,513 L652,461 L738,429 Z" android:fillColor="#FFFFFF" />
+        <path android:pathData="M304,511 L372,563 L286,595 Z" android:fillColor="#FFFFFF" />
+        <!-- bud + short rounded stem -->
+        <path android:pathData="M418,470 a94,94 0 1,0 188,0 a94,94 0 1,0 -188,0" android:fillColor="#FFFFFF" />
+        <path
+            android:pathData="M479,531 a33,33 0 0 1 33,-33 a33,33 0 0 1 33,33 L545,597 a33,33 0 0 1 -33,33 a33,33 0 0 1 -33,-33 Z"
+            android:fillColor="#FFFFFF" />
+    </group>
+</vector>

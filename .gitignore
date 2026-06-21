@@ -1,0 +1,46 @@
+# ─── macOS / OS noise ───────────────────────────────────────────────
+.DS_Store
+*.swp
+
+# ─── Local design docs (not published) ──────────────────────────────
+/docs/
+
+# ─── Brand: keep master/ SVG sources, ignore generated output ───────
+/brand/render/
+/brand/concepts/
+/brand/*.py
+
+# ─── Swift / SwiftPM (macOS) ────────────────────────────────────────
+macos/.build/
+macos/build/
+*.xcodeproj
+*.xcworkspace
+
+# ─── Android / Gradle ───────────────────────────────────────────────
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/captures/
+*.iml
+.idea/
+.kotlin/
+
+# ─── Release artifacts (attached to GitHub Releases, not committed) ─
+*.apk
+*.aab
+*.dmg
+
+# ─── Signing secrets — NEVER commit these ───────────────────────────
+keystore.properties
+*.keystore
+*.jks
+
+# ─── Logs ───────────────────────────────────────────────────────────
+*.log
+
+# ─── .NET / C# (Windows app) ────────────────────────────────────────
+[Bb]in/
+[Oo]bj/
+*.user
+

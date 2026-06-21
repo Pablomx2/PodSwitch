@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PodSwitch</string>
+
+    <!-- Notification channels -->
+    <string name="channel_service_name">PodSwitch running</string>
+    <string name="channel_service_desc">Ongoing notification while PodSwitch watches audio output.</string>
+    <string name="channel_ask_name">Switch prompts</string>
+    <string name="channel_ask_desc">Asks whether to move audio to your headphones.</string>
+
+    <!-- Ongoing notification -->
+    <string name="ongoing_title">PodSwitch active</string>
+    <string name="ongoing_text">Watching for audio to move to the target Bluetooth device.</string>
+
+    <!-- Ask notification -->
+    <string name="ask_title">Move audio here?</string>
+    <string name="ask_text">Audio started playing. Connect the target device now?</string>
+    <string name="ask_action_connect">Connect</string>
+
+    <!-- UI -->
+    <string name="ui_master_enable">Enable PodSwitch</string>
+    <string name="ui_mode_header">When audio starts</string>
+    <string name="ui_mode_steal">Switch automatically</string>
+    <string name="ui_mode_ask">Ask me first</string>
+    <string name="ui_categories_header">Trigger on</string>
+    <string name="ui_category_media">Media</string>
+    <string name="ui_category_call">Calls</string>
+    <string name="ui_category_notification">Notifications</string>
+    <string name="ui_device_header">Target device</string>
+    <string name="ui_device_none">No paired Bluetooth audio devices found. Pair one first.</string>
+    <string name="ui_battery_hint">Tip: exempt PodSwitch from battery optimization so it keeps running in the background.</string>
+    <string name="ui_battery_button">Battery settings</string>
+
+    <!-- Quick Settings tile -->
+    <string name="qs_tile_label">PodSwitch</string>
+    <string name="qs_mode_steal">Steal · auto-switch</string>
+    <string name="qs_mode_ask">Ask first</string>
+</resources>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="250 282 524 472">
+  <!-- tightly-cropped glyph for the macOS menu-bar template image -->
+  <g fill="none" stroke="#000000" stroke-width="58" stroke-linecap="round">
+    <path d="M 329 445 A 195 195 0 0 1 695 445"/>
+    <path d="M 695 579 A 195 195 0 0 1 329 579"/>
+  </g>
+  <g fill="#000000">
+    <path d="M 720 513 L 652 461 L 738 429 Z"/>
+    <path d="M 304 511 L 372 563 L 286 595 Z"/>
+    <circle cx="512" cy="470" r="94"/>
+    <rect x="479" y="498" width="66" height="132" rx="33"/>
+  </g>
+</svg>

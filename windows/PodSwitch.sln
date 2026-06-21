@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PodSwitch.Core", "PodSwitch.Core\PodSwitch.Core.csproj", "{956D8251-2B0E-4406-BD56-01BEF1DA116C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PodSwitch.Core.Tests", "PodSwitch.Core.Tests\PodSwitch.Core.Tests.csproj", "{091D39B8-6497-4A3F-871E-C0DF672E8935}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PodSwitch.App", "PodSwitch.App\PodSwitch.App.csproj", "{89BF06E4-9144-4DCF-9520-899C19FAA218}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{956D8251-2B0E-4406-BD56-01BEF1DA116C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{956D8251-2B0E-4406-BD56-01BEF1DA116C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{956D8251-2B0E-4406-BD56-01BEF1DA116C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{956D8251-2B0E-4406-BD56-01BEF1DA116C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{091D39B8-6497-4A3F-871E-C0DF672E8935}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{091D39B8-6497-4A3F-871E-C0DF672E8935}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{091D39B8-6497-4A3F-871E-C0DF672E8935}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{091D39B8-6497-4A3F-871E-C0DF672E8935}.Release|Any CPU.Build.0 = Release|Any CPU
+		{89BF06E4-9144-4DCF-9520-899C19FAA218}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89BF06E4-9144-4DCF-9520-899C19FAA218}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89BF06E4-9144-4DCF-9520-899C19FAA218}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89BF06E4-9144-4DCF-9520-899C19FAA218}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="ps_g" x1="64" y1="64" x2="960" y2="960" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5145E6"/>
+      <stop offset="1" stop-color="#06B6D4"/>
+    </linearGradient>
+    <linearGradient id="ps_hi" x1="512" y1="80" x2="512" y2="560" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="64" y="64" width="896" height="896" rx="208" fill="url(#ps_g)"/>
+  <rect x="64" y="64" width="896" height="896" rx="208" fill="url(#ps_hi)"/>
+
+  <g transform="translate(512 512) scale(1.06) translate(-512 -512)">
+    <!-- two chasing swap arcs, arrowheads tangent to the arc ends -->
+    <g fill="none" stroke="#FFFFFF" stroke-width="58" stroke-linecap="round">
+      <path d="M 329 445 A 195 195 0 0 1 695 445"/>
+      <path d="M 695 579 A 195 195 0 0 1 329 579"/>
+    </g>
+    <g fill="#FFFFFF">
+      <path d="M 720 513 L 652 461 L 738 429 Z"/>
+      <path d="M 304 511 L 372 563 L 286 595 Z"/>
+    </g>
+    <!-- earbud / device mark: round bud + short rounded stem -->
+    <g fill="#FFFFFF">
+      <circle cx="512" cy="470" r="94"/>
+      <rect x="479" y="498" width="66" height="132" rx="33"/>
+    </g>
+  </g>
+</svg>
