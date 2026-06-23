@@ -10,6 +10,11 @@ public struct BluetoothConnector: BluetoothConnecting {
     private static let attemptTimeout: TimeInterval = 4.0
     private static let pollInterval: TimeInterval = 0.4
 
+    /// All IOBluetooth work runs here. `IOBluetoothDevice.openConnection()` is synchronous and
+    /// blocks the calling thread until the baseband link is up (or times out), so it must never
+    /// run on the main thread — otherwise the menu-bar app stalls for seconds during a connect.
+    private static let queue = DispatchQueue(label: "com.podswitch.core.bluetooth")
+
     private static let log = Logger(subsystem: "com.podswitch.core", category: "BluetoothConnector")
 
     public init() {}
@@ -18,16 +23,19 @@ public struct BluetoothConnector: BluetoothConnecting {
         pairedDevice(matching: deviceId) != nil
     }
 
-    /// Fire-and-forget connect: verifies asynchronously, retries once, then gives up silently.
+    /// Fire-and-forget connect: hops to a background queue, verifies asynchronously, retries
+    /// once, then gives up silently. Returns immediately so the caller (main actor) never blocks.
     public func connect(deviceId: String) {
-        guard let device = pairedDevice(matching: deviceId) else {
-            Self.log.error("connect: device not found among paired devices")
-            return
+        Self.queue.async {
+            guard let device = pairedDevice(matching: deviceId) else {
+                Self.log.error("connect: device not found among paired devices")
+                return
+            }
+            if device.isConnected() && isActiveOutput(deviceId: deviceId) {
+                return
+            }
+            attemptConnect(deviceId: deviceId, attempt: 1)
         }
-        if device.isConnected() && isActiveOutput(deviceId: deviceId) {
-            return
-        }
-        attemptConnect(deviceId: deviceId, attempt: 1)
     }
 
     /// Initiate one connection attempt and start polling for success.
@@ -58,7 +66,7 @@ public struct BluetoothConnector: BluetoothConnecting {
             return
         }
         let interval = Self.pollInterval
-        DispatchQueue.main.asyncAfter(deadline: .now() + interval) {
+        Self.queue.asyncAfter(deadline: .now() + interval) {
             pollForSuccess(deviceId: deviceId, attempt: attempt, elapsed: elapsed + interval)
         }
     }
