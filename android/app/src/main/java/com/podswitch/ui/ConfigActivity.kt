@@ -39,6 +39,7 @@ class ConfigActivity : ComponentActivity() {
                         state = state,
                         onEnabledChange = viewModel::setEnabled,
                         onModeChange = viewModel::setMode,
+                        onYieldChange = viewModel::setYieldToOtherSource,
                         onCategoryChange = viewModel::setCategoryEnabled,
                         onDeviceSelect = viewModel::selectDevice,
                         onOpenBatterySettings = ::openBatterySettings,

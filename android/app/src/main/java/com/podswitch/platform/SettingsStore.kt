@@ -41,6 +41,10 @@ class AndroidSettingsStore(
         context.dataStore.edit { it[categoryKey(category)] = enabled }
     }
 
+    suspend fun setYieldToOtherSource(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_YIELD] = enabled }
+    }
+
     suspend fun setTarget(address: String?, name: String?) {
         context.dataStore.edit { prefs ->
             if (address == null) {
@@ -69,6 +73,7 @@ class AndroidSettingsStore(
             mode = mode,
             enabledCategories = categories,
             targetDeviceId = this[KEY_TARGET_ADDRESS],
+            yieldToOtherSource = this[KEY_YIELD] ?: false,
         )
     }
 
@@ -86,5 +91,6 @@ class AndroidSettingsStore(
         val KEY_CAT_NOTIFICATION = booleanPreferencesKey("cat_notification")
         val KEY_TARGET_ADDRESS = stringPreferencesKey("target_address")
         val KEY_TARGET_NAME = stringPreferencesKey("target_name")
+        val KEY_YIELD = booleanPreferencesKey("yield_to_other_source")
     }
 }

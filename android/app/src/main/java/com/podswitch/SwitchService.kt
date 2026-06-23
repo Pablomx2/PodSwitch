@@ -15,6 +15,7 @@ import com.podswitch.platform.AndroidNotificationPresenter
 import com.podswitch.platform.AndroidSettingsStore
 import com.podswitch.platform.AudioMonitor
 import com.podswitch.platform.CallMonitor
+import com.podswitch.platform.TargetConnectionMonitor
 
 /**
  * Foreground service wiring the platform implementations into a [Coordinator] and posting the
@@ -26,6 +27,7 @@ class SwitchService : LifecycleService() {
     private lateinit var notifier: AndroidNotificationPresenter
     private lateinit var coordinator: Coordinator
     private lateinit var audioMonitor: AudioMonitor
+    private lateinit var connectionMonitor: TargetConnectionMonitor
 
     private var started = false
 
@@ -36,6 +38,13 @@ class SwitchService : LifecycleService() {
         val settings = AndroidSettingsStore(applicationContext)
         coordinator = Coordinator(settings, connector, notifier)
         audioMonitor = AudioMonitor(applicationContext, CallMonitor(applicationContext))
+        connectionMonitor = TargetConnectionMonitor(
+            context = applicationContext,
+            targetAddress = { settings.currentConfig().targetDeviceId },
+            onChanged = { connected ->
+                coordinator.handle(SwitchEvent.TargetConnectionChanged(connected))
+            },
+        )
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -47,6 +56,7 @@ class SwitchService : LifecycleService() {
             }
             started = true
             connector.acquireProxy()
+            connectionMonitor.start()
             audioMonitor.start { event -> coordinator.handle(event) }
         }
 
@@ -98,6 +108,7 @@ class SwitchService : LifecycleService() {
     override fun onDestroy() {
         if (started) {
             audioMonitor.stop()
+            connectionMonitor.stop()
             connector.releaseProxy()
             started = false
         }

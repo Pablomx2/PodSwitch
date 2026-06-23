@@ -22,6 +22,8 @@
     <string name="ui_mode_header">When audio starts</string>
     <string name="ui_mode_steal">Switch automatically</string>
     <string name="ui_mode_ask">Ask me first</string>
+    <string name="ui_yield_title">Don\'t grab back from other devices</string>
+    <string name="ui_yield_desc">If another device takes the headphones, wait for them to come back instead of stealing them.</string>
     <string name="ui_categories_header">Trigger on</string>
     <string name="ui_category_media">Media</string>
     <string name="ui_category_call">Calls</string>

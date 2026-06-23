@@ -20,13 +20,15 @@ class SwitchEngineTest {
         mode: Mode = Mode.STEAL,
         categories: Set<Category> = setOf(Category.MEDIA, Category.CALL, Category.NOTIFICATION),
         targetId: String? = target,
-    ) = Config(enabled, mode, categories, targetId)
+        yield: Boolean = false,
+    ) = Config(enabled, mode, categories, targetId, yieldToOtherSource = yield)
 
     private fun status(
         paired: Boolean = true,
         active: Boolean = false,
         pending: Boolean = false,
-    ) = DeviceStatus(paired, active, pending)
+        yielded: Boolean = false,
+    ) = DeviceStatus(paired, active, pending, targetYielded = yielded)
 
     // ---- Master gate: disabled ----
 
@@ -201,6 +203,80 @@ class SwitchEngineTest {
                 "accept under mode=$mode should Connect when paired+inactive",
                 SwitchAction.Connect,
                 SwitchEngine.decide(SwitchEvent.UserAcceptedSwitch, config(mode = mode), status()),
+            )
+        }
+    }
+
+    // ---- yieldToOtherSource guard ----
+
+    @Test
+    fun audioStarted_yieldOn_yielded_steal_isNone() {
+        assertEquals(
+            SwitchAction.None,
+            SwitchEngine.decide(
+                SwitchEvent.AudioStarted(Category.MEDIA),
+                config(mode = Mode.STEAL, yield = true),
+                status(yielded = true),
+            ),
+        )
+    }
+
+    @Test
+    fun audioStarted_yieldOn_yielded_ask_isNone() {
+        assertEquals(
+            SwitchAction.None,
+            SwitchEngine.decide(
+                SwitchEvent.AudioStarted(Category.MEDIA),
+                config(mode = Mode.ASK, yield = true),
+                status(yielded = true),
+            ),
+        )
+    }
+
+    @Test
+    fun audioStarted_yieldOff_yielded_steal_stillConnects() {
+        assertEquals(
+            "guard is inert while the option is off",
+            SwitchAction.Connect,
+            SwitchEngine.decide(
+                SwitchEvent.AudioStarted(Category.MEDIA),
+                config(mode = Mode.STEAL, yield = false),
+                status(yielded = true),
+            ),
+        )
+    }
+
+    @Test
+    fun audioStarted_yieldOn_notYielded_steal_connects() {
+        assertEquals(
+            SwitchAction.Connect,
+            SwitchEngine.decide(
+                SwitchEvent.AudioStarted(Category.MEDIA),
+                config(mode = Mode.STEAL, yield = true),
+                status(yielded = false),
+            ),
+        )
+    }
+
+    @Test
+    fun accepted_ignoresYieldGuard_connects() {
+        assertEquals(
+            "an explicit accept overrides the yield guard",
+            SwitchAction.Connect,
+            SwitchEngine.decide(
+                SwitchEvent.UserAcceptedSwitch,
+                config(yield = true),
+                status(yielded = true),
+            ),
+        )
+    }
+
+    @Test
+    fun targetConnectionChanged_isAlwaysNone() {
+        for (connected in listOf(true, false)) {
+            assertEquals(
+                SwitchAction.None,
+                SwitchEngine.decide(SwitchEvent.TargetConnectionChanged(connected), config(), status()),
             )
         }
     }

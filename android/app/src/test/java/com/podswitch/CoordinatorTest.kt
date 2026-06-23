@@ -46,7 +46,8 @@ class CoordinatorTest {
         mode: Mode = Mode.STEAL,
         categories: Set<Category> = setOf(Category.MEDIA),
         targetId: String? = target,
-    ) = Config(enabled, mode, categories, targetId)
+        yield: Boolean = false,
+    ) = Config(enabled, mode, categories, targetId, yieldToOtherSource = yield)
 
     // ---- None ----
 
@@ -184,5 +185,85 @@ class CoordinatorTest {
         coordinator.handle(SwitchEvent.AudioStarted(Category.MEDIA))
 
         assertEquals(0, connector.connectCalls)
+    }
+
+    // ---- yieldToOtherSource: don't grab back after another source takes the target ----
+
+    @Test
+    fun yield_afterTargetLost_suppressesSteal() {
+        val connector = FakeConnector()
+        val coordinator = Coordinator(FakeSettings(config(mode = Mode.STEAL, yield = true)), connector, FakeNotifier())
+
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = true))
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = false)) // taken by another source
+        coordinator.handle(SwitchEvent.AudioStarted(Category.MEDIA))
+
+        assertEquals("must not grab the target back while yielded", 0, connector.connectCalls)
+    }
+
+    @Test
+    fun yield_afterTargetReturns_resumesSteal() {
+        val connector = FakeConnector()
+        val coordinator = Coordinator(FakeSettings(config(mode = Mode.STEAL, yield = true)), connector, FakeNotifier())
+
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = true))
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = false))
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = true)) // freed back to us
+        coordinator.handle(SwitchEvent.AudioStarted(Category.MEDIA))
+
+        assertEquals(1, connector.connectCalls)
+    }
+
+    @Test
+    fun yield_disconnectWithoutPriorConnect_doesNotYield() {
+        val connector = FakeConnector()
+        val coordinator = Coordinator(FakeSettings(config(mode = Mode.STEAL, yield = true)), connector, FakeNotifier())
+
+        // Target merely idle/disconnected at start — not "taken" from us.
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = false))
+        coordinator.handle(SwitchEvent.AudioStarted(Category.MEDIA))
+
+        assertEquals("an idle target is still stealable", 1, connector.connectCalls)
+    }
+
+    @Test
+    fun yield_off_stillStealsAfterTargetLost() {
+        val connector = FakeConnector()
+        val coordinator = Coordinator(FakeSettings(config(mode = Mode.STEAL, yield = false)), connector, FakeNotifier())
+
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = true))
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = false))
+        coordinator.handle(SwitchEvent.AudioStarted(Category.MEDIA))
+
+        assertEquals(1, connector.connectCalls)
+    }
+
+    @Test
+    fun yield_audioStopped_resetsYield() {
+        val connector = FakeConnector()
+        val coordinator = Coordinator(FakeSettings(config(mode = Mode.STEAL, yield = true)), connector, FakeNotifier())
+
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = true))
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = false))
+        coordinator.handle(SwitchEvent.AudioStopped) // fresh session
+        coordinator.handle(SwitchEvent.AudioStarted(Category.MEDIA))
+
+        assertEquals(1, connector.connectCalls)
+    }
+
+    @Test
+    fun yield_userAcceptOverridesGuard() {
+        val connector = FakeConnector()
+        val coordinator = Coordinator(FakeSettings(config(mode = Mode.STEAL, yield = true)), connector, FakeNotifier())
+
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = true))
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = false))
+        coordinator.handle(SwitchEvent.UserAcceptedSwitch)
+
+        assertEquals("explicit accept connects despite the yield", 1, connector.connectCalls)
+
+        // And the yield was cleared, so a later AudioStarted also connects.
+        coordinator.handle(SwitchEvent.AudioStarted(Category.MEDIA))
+        assertEquals(2, connector.connectCalls)
     }
 }

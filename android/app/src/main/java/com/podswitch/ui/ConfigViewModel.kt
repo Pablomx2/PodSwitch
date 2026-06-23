@@ -74,6 +74,10 @@ class ConfigViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { settings.setTarget(device.address, device.name) }
     }
 
+    fun setYieldToOtherSource(enabled: Boolean) {
+        viewModelScope.launch { settings.setYieldToOtherSource(enabled) }
+    }
+
     private fun startService() {
         val app = getApplication<Application>()
         ContextCompat.startForegroundService(app, Intent(app, SwitchService::class.java))

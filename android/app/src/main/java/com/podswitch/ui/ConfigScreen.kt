@@ -50,6 +50,7 @@ fun ConfigScreen(
     state: ConfigUiState,
     onEnabledChange: (Boolean) -> Unit,
     onModeChange: (Mode) -> Unit,
+    onYieldChange: (Boolean) -> Unit,
     onCategoryChange: (Category, Boolean) -> Unit,
     onDeviceSelect: (AndroidBluetoothConnector.BondedDevice) -> Unit,
     onOpenBatterySettings: () -> Unit,
@@ -74,6 +75,8 @@ fun ConfigScreen(
             ModeCard(
                 mode = state.config.mode,
                 onModeChange = onModeChange,
+                yieldToOtherSource = state.config.yieldToOtherSource,
+                onYieldChange = onYieldChange,
             )
 
             TriggersCard(
@@ -168,7 +171,12 @@ private fun SectionCard(
 }
 
 @Composable
-private fun ModeCard(mode: Mode, onModeChange: (Mode) -> Unit) {
+private fun ModeCard(
+    mode: Mode,
+    onModeChange: (Mode) -> Unit,
+    yieldToOtherSource: Boolean,
+    onYieldChange: (Boolean) -> Unit,
+) {
     SectionCard(title = stringResource(R.string.ui_mode_header)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -186,6 +194,25 @@ private fun ModeCard(mode: Mode, onModeChange: (Mode) -> Unit) {
                 onClick = { onModeChange(Mode.ASK) },
                 modifier = Modifier.weight(1f),
             )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.ui_yield_title),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = stringResource(R.string.ui_yield_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(checked = yieldToOtherSource, onCheckedChange = onYieldChange)
         }
     }
 }
