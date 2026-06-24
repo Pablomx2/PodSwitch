@@ -36,3 +36,18 @@ public protocol Notifying: AnyObject {
 public protocol SettingsStore: AnyObject {
     var config: Config { get set }
 }
+
+/// LAN presence coordination: learn whether a peer is actively playing on the target, and announce
+/// this machine's own active/playing state. Best-effort — with no reachable peer
+/// `peerActiveOnTarget` is false and the engine falls back to the reactive yield guard.
+///
+/// Implementations manage their own networking thread, so the protocol is `Sendable` and the
+/// callback is `@Sendable` (it hops back to the main actor itself).
+public protocol PresencePort: AnyObject, Sendable {
+    /// True if a peer PodSwitch device currently holds + plays the target.
+    func peerActiveOnTarget() -> Bool
+    /// Announce whether THIS machine is currently holding the target as active output AND playing.
+    func setLocalActive(_ active: Bool)
+    /// Invoked when a peer's active state changes (e.g. it released the target).
+    var onPeerChanged: (@Sendable () -> Void)? { get set }
+}

@@ -9,6 +9,8 @@ public final class Settings: SettingsStore {
         static let mode = "podswitch.mode"
         static let address = "podswitch.target.address"
         static let name = "podswitch.target.name"
+        static let yield = "podswitch.yield"
+        static let deviceId = "podswitch.deviceId"
     }
 
     private let defaults: UserDefaults
@@ -35,12 +37,14 @@ public final class Settings: SettingsStore {
                 enabled: enabled,
                 mode: mode,
                 enabledCategories: [.media],
-                targetDeviceId: address
+                targetDeviceId: address,
+                yieldToOtherSource: defaults.bool(forKey: Key.yield)
             )
         }
         set {
             defaults.set(newValue.enabled, forKey: Key.enabled)
             defaults.set(newValue.mode.rawValue, forKey: Key.mode)
+            defaults.set(newValue.yieldToOtherSource, forKey: Key.yield)
             if let address = newValue.targetDeviceId {
                 defaults.set(address, forKey: Key.address)
             } else {
@@ -54,5 +58,13 @@ public final class Settings: SettingsStore {
     public func setTargetDevice(address: String, name: String) {
         defaults.set(address, forKey: Key.address)
         defaults.set(name, forKey: Key.name)
+    }
+
+    /// Stable per-install identifier used to distinguish this device in LAN coordination.
+    public func deviceId() -> String {
+        if let existing = defaults.string(forKey: Key.deviceId) { return existing }
+        let id = UUID().uuidString
+        defaults.set(id, forKey: Key.deviceId)
+        return id
     }
 }

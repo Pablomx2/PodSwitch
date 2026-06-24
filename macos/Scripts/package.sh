@@ -74,6 +74,8 @@ cat > "${APP_DIR}/Contents/Info.plist" <<PLIST
     <true/>
     <key>NSBluetoothAlwaysUsageDescription</key>
     <string>PodSwitch connects to your paired Bluetooth device when audio starts.</string>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>PodSwitch coordinates with your other devices over the local network so the device that is actively playing keeps the headphones. No data leaves your network.</string>
 </dict>
 </plist>
 PLIST

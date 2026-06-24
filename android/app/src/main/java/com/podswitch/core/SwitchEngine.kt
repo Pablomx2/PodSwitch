@@ -16,7 +16,10 @@ object SwitchEngine {
                 if (event.category !in config.enabledCategories) return SwitchAction.None
                 if (!status.targetPaired) return SwitchAction.None
                 if (status.targetActiveOutput) return SwitchAction.None
-                // Another source holds the target and we're configured to yield: stay put.
+                // Coordination layer (authoritative): a peer device is actively playing on the
+                // target right now — protect it, don't steal.
+                if (config.yieldToOtherSource && status.peerActiveOnTarget) return SwitchAction.None
+                // Reactive fallback: we lost the target to another source and haven't got it back.
                 if (config.yieldToOtherSource && status.targetYielded) return SwitchAction.None
                 when (config.mode) {
                     Mode.STEAL -> SwitchAction.Connect

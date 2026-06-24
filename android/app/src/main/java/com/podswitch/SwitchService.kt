@@ -14,6 +14,7 @@ import com.podswitch.platform.AndroidBluetoothConnector
 import com.podswitch.platform.AndroidNotificationPresenter
 import com.podswitch.platform.AndroidSettingsStore
 import com.podswitch.platform.AudioMonitor
+import com.podswitch.platform.AndroidPresenceCoordinator
 import com.podswitch.platform.CallMonitor
 import com.podswitch.platform.TargetConnectionMonitor
 
@@ -28,6 +29,7 @@ class SwitchService : LifecycleService() {
     private lateinit var coordinator: Coordinator
     private lateinit var audioMonitor: AudioMonitor
     private lateinit var connectionMonitor: TargetConnectionMonitor
+    private lateinit var presence: AndroidPresenceCoordinator
 
     private var started = false
 
@@ -36,7 +38,12 @@ class SwitchService : LifecycleService() {
         connector = AndroidBluetoothConnector(applicationContext)
         notifier = AndroidNotificationPresenter(applicationContext)
         val settings = AndroidSettingsStore(applicationContext)
-        coordinator = Coordinator(settings, connector, notifier)
+        presence = AndroidPresenceCoordinator(
+            context = applicationContext,
+            deviceId = settings.deviceId(),
+            targetProvider = { settings.currentConfig().targetDeviceId },
+        )
+        coordinator = Coordinator(settings, connector, notifier, presence)
         audioMonitor = AudioMonitor(applicationContext, CallMonitor(applicationContext))
         connectionMonitor = TargetConnectionMonitor(
             context = applicationContext,
@@ -57,6 +64,7 @@ class SwitchService : LifecycleService() {
             started = true
             connector.acquireProxy()
             connectionMonitor.start()
+            presence.start()
             audioMonitor.start { event -> coordinator.handle(event) }
         }
 
@@ -109,6 +117,7 @@ class SwitchService : LifecycleService() {
         if (started) {
             audioMonitor.stop()
             connectionMonitor.stop()
+            presence.shutdown()
             connector.releaseProxy()
             started = false
         }

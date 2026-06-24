@@ -29,6 +29,13 @@ class AndroidSettingsStore(
         context.dataStore.data.first().toConfig()
     }
 
+    /** Stable per-install identifier used to distinguish this device in LAN coordination. */
+    fun deviceId(): String = runBlocking {
+        context.dataStore.data.first()[KEY_DEVICE_ID] ?: java.util.UUID.randomUUID().toString().also { id ->
+            context.dataStore.edit { it[KEY_DEVICE_ID] = id }
+        }
+    }
+
     suspend fun setEnabled(enabled: Boolean) {
         context.dataStore.edit { it[KEY_ENABLED] = enabled }
     }
@@ -92,5 +99,6 @@ class AndroidSettingsStore(
         val KEY_TARGET_ADDRESS = stringPreferencesKey("target_address")
         val KEY_TARGET_NAME = stringPreferencesKey("target_name")
         val KEY_YIELD = booleanPreferencesKey("yield_to_other_source")
+        val KEY_DEVICE_ID = stringPreferencesKey("device_id")
     }
 }

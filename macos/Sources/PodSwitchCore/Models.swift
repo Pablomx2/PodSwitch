@@ -25,17 +25,21 @@ public struct Config: Sendable, Equatable {
     public var enabledCategories: Set<Category>
     /// Target Bluetooth device address; `nil` means unconfigured.
     public var targetDeviceId: String?
+    /// When true, don't grab the target back after another source took it (see `DeviceStatus.targetYielded`).
+    public var yieldToOtherSource: Bool
 
     public init(
         enabled: Bool,
         mode: Mode,
         enabledCategories: Set<Category>,
-        targetDeviceId: String?
+        targetDeviceId: String?,
+        yieldToOtherSource: Bool = false
     ) {
         self.enabled = enabled
         self.mode = mode
         self.enabledCategories = enabledCategories
         self.targetDeviceId = targetDeviceId
+        self.yieldToOtherSource = yieldToOtherSource
     }
 }
 
@@ -47,15 +51,23 @@ public struct DeviceStatus: Sendable, Equatable {
     public var targetActiveOutput: Bool
     /// An ASK notification is already on screen.
     public var notificationPending: Bool
+    /// The target was taken by another source (lost while we held it) and not yet returned.
+    public var targetYielded: Bool
+    /// A peer PodSwitch device reported (over the LAN) it is actively playing on this same target.
+    public var peerActiveOnTarget: Bool
 
     public init(
         targetPaired: Bool,
         targetActiveOutput: Bool,
-        notificationPending: Bool
+        notificationPending: Bool,
+        targetYielded: Bool = false,
+        peerActiveOnTarget: Bool = false
     ) {
         self.targetPaired = targetPaired
         self.targetActiveOutput = targetActiveOutput
         self.notificationPending = notificationPending
+        self.targetYielded = targetYielded
+        self.peerActiveOnTarget = peerActiveOnTarget
     }
 }
 
@@ -67,6 +79,8 @@ public enum SwitchEvent: Sendable, Equatable {
     case userAcceptedSwitch
     /// Audio stopped (monitor-side debounce only).
     case audioStopped
+    /// The target's connection to THIS machine changed (true = connected to us).
+    case targetConnectionChanged(Bool)
 }
 
 /// The action the platform layer should perform.

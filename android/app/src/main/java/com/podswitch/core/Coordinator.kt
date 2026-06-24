@@ -5,6 +5,7 @@ class Coordinator(
     private val settings: SettingsStore,
     private val connector: BluetoothConnector,
     private val notifier: NotificationPresenter,
+    private val presence: PresencePort? = null,
 ) {
     private var notificationPending: Boolean = false
 
@@ -13,6 +14,15 @@ class Coordinator(
 
     /** Target was taken by another source (connected -> disconnected, not by us) and not yet freed. */
     private var targetYielded: Boolean = false
+
+    /** Whether local audio is currently playing, and of what category (for coordination claims). */
+    private var localPlaying: Boolean = false
+    private var localCategory: Category? = null
+
+    init {
+        // When a peer releases the target, re-evaluate so we can take over if we're still playing.
+        presence?.onPeerChanged = { onPeerChanged() }
+    }
 
     /** Feed one event through the engine and perform the resulting action. */
     fun handle(event: SwitchEvent) {
@@ -26,7 +36,21 @@ class Coordinator(
                 targetYielded = true
             }
             targetConnected = event.connected
+            updatePresenceLocalActive()
             return
+        }
+
+        // Track the local playing level that drives our outgoing presence claims.
+        when (event) {
+            is SwitchEvent.AudioStarted -> {
+                localPlaying = true
+                localCategory = event.category
+            }
+            SwitchEvent.AudioStopped -> {
+                localPlaying = false
+                localCategory = null
+            }
+            else -> Unit
         }
 
         val config = settings.currentConfig()
@@ -47,6 +71,7 @@ class Coordinator(
             targetActiveOutput = active,
             notificationPending = notificationPending,
             targetYielded = targetYielded,
+            peerActiveOnTarget = presence?.peerActiveOnTarget() ?: false,
         )
 
         when (SwitchEngine.decide(event, config, status)) {
@@ -69,12 +94,29 @@ class Coordinator(
         }
 
         if (event is SwitchEvent.AudioStopped) {
-            // A fresh playback session starts unbiased by a past yield.
-            targetYielded = false
+            // Only a stop while we still HOLD the device is a genuine "session ended" — clear the
+            // yield so the next play is unbiased. A stop while we DON'T hold it is almost always
+            // the auto-pause caused by another source stealing the device (ACTION_AUDIO_BECOMING_
+            // NOISY); clearing the yield there would let us wrongly grab it back.
+            if (targetConnected) targetYielded = false
             if (notificationPending) {
                 notificationPending = false
                 notifier.clearAsk()
             }
+        }
+
+        updatePresenceLocalActive()
+    }
+
+    /** Broadcast a claim only while we both hold the target AND are playing on it. */
+    private fun updatePresenceLocalActive() {
+        presence?.setLocalActive(localPlaying && targetConnected)
+    }
+
+    /** A peer's active state changed (typically it released the target). Take over if we can. */
+    private fun onPeerChanged() {
+        if (localPlaying) {
+            handle(SwitchEvent.AudioStarted(localCategory ?: Category.MEDIA))
         }
     }
 }

@@ -33,6 +33,13 @@ data class DeviceStatus(
      * from the other source's playback.
      */
     val targetYielded: Boolean = false,
+    /**
+     * Another PodSwitch device reported (over the LAN) that it is actively playing on this same
+     * target right now. This is the authoritative "protect the active device" signal; unlike
+     * [targetYielded] it is proactive (we learn it before stealing). Only the device that holds the
+     * target as active output broadcasts it, so at most one peer is ever active at a time.
+     */
+    val peerActiveOnTarget: Boolean = false,
 )
 
 /** Events fed into the decision engine. */

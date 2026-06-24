@@ -44,16 +44,26 @@ final class CoordinatorTests: XCTestCase {
         init(_ config: Config) { self.config = config }
     }
 
+    final class FakePresence: PresencePort, @unchecked Sendable {
+        var peerActive = false
+        var localActive: Bool?
+        var onPeerChanged: (@Sendable () -> Void)?
+        func peerActiveOnTarget() -> Bool { peerActive }
+        func setLocalActive(_ active: Bool) { localActive = active }
+    }
+
     private func makeConfig(
         enabled: Bool = true,
         mode: Mode = .steal,
-        target: String? = "aa-bb-cc-dd-ee-ff"
+        target: String? = "aa-bb-cc-dd-ee-ff",
+        yield: Bool = false
     ) -> Config {
         Config(
             enabled: enabled,
             mode: mode,
             enabledCategories: [.media],
-            targetDeviceId: target
+            targetDeviceId: target,
+            yieldToOtherSource: yield
         )
     }
 
@@ -240,5 +250,142 @@ final class CoordinatorTests: XCTestCase {
         monitor.emit(.audioStopped)
         XCTAssertEqual(bt.connectCount, 0)
         XCTAssertEqual(coordinator.notificationPending, pendingBefore)
+    }
+
+    // MARK: - yieldToOtherSource: don't grab back after another source takes the target
+
+    func testYieldAfterTargetLostSuppressesSteal() {
+        let bt = FakeBluetooth()
+        let (coordinator, monitor, _, _) = makeCoordinator(config: makeConfig(mode: .steal, yield: true), bluetooth: bt)
+        withExtendedLifetime(coordinator) {
+            monitor.emit(.targetConnectionChanged(true))
+            monitor.emit(.targetConnectionChanged(false)) // taken by another source
+            monitor.emit(.audioStarted(.media))
+        }
+        XCTAssertEqual(bt.connectCount, 0)
+    }
+
+    func testYieldAfterTargetReturnsResumesSteal() {
+        let bt = FakeBluetooth()
+        let (coordinator, monitor, _, _) = makeCoordinator(config: makeConfig(mode: .steal, yield: true), bluetooth: bt)
+        withExtendedLifetime(coordinator) {
+            monitor.emit(.targetConnectionChanged(true))
+            monitor.emit(.targetConnectionChanged(false))
+            monitor.emit(.targetConnectionChanged(true)) // freed back to us
+            monitor.emit(.audioStarted(.media))
+        }
+        XCTAssertEqual(bt.connectCount, 1)
+    }
+
+    func testYieldDisconnectWithoutPriorConnectDoesNotYield() {
+        let bt = FakeBluetooth()
+        let (coordinator, monitor, _, _) = makeCoordinator(config: makeConfig(mode: .steal, yield: true), bluetooth: bt)
+        withExtendedLifetime(coordinator) {
+            monitor.emit(.targetConnectionChanged(false)) // merely idle, not taken from us
+            monitor.emit(.audioStarted(.media))
+        }
+        XCTAssertEqual(bt.connectCount, 1)
+    }
+
+    func testYieldOffStillStealsAfterTargetLost() {
+        let bt = FakeBluetooth()
+        let (coordinator, monitor, _, _) = makeCoordinator(config: makeConfig(mode: .steal, yield: false), bluetooth: bt)
+        withExtendedLifetime(coordinator) {
+            monitor.emit(.targetConnectionChanged(true))
+            monitor.emit(.targetConnectionChanged(false))
+            monitor.emit(.audioStarted(.media))
+        }
+        XCTAssertEqual(bt.connectCount, 1)
+    }
+
+    func testYieldSurvivesStealInducedPause() {
+        let bt = FakeBluetooth()
+        let (coordinator, monitor, _, _) = makeCoordinator(config: makeConfig(mode: .steal, yield: true), bluetooth: bt)
+        withExtendedLifetime(coordinator) {
+            monitor.emit(.targetConnectionChanged(true))
+            monitor.emit(.targetConnectionChanged(false)) // stolen
+            monitor.emit(.audioStopped)                   // auto-pause from the steal — NOT a fresh session
+            monitor.emit(.audioStarted(.media))
+        }
+        XCTAssertEqual(bt.connectCount, 0)
+    }
+
+    func testYieldClearedByStopWhileHolding() {
+        let bt = FakeBluetooth()
+        let (coordinator, monitor, _, _) = makeCoordinator(config: makeConfig(mode: .steal, yield: true), bluetooth: bt)
+        withExtendedLifetime(coordinator) {
+            monitor.emit(.targetConnectionChanged(true)) // we hold it
+            monitor.emit(.audioStopped)                  // genuine session end
+            monitor.emit(.audioStarted(.media))
+        }
+        XCTAssertEqual(bt.connectCount, 1)
+    }
+
+    func testYieldUserAcceptOverridesGuard() {
+        let bt = FakeBluetooth()
+        let (coordinator, monitor, _, _) = makeCoordinator(config: makeConfig(mode: .steal, yield: true), bluetooth: bt)
+        withExtendedLifetime(coordinator) {
+            monitor.emit(.targetConnectionChanged(true))
+            monitor.emit(.targetConnectionChanged(false))
+            coordinator.handle(.userAcceptedSwitch)
+            XCTAssertEqual(bt.connectCount, 1)
+            // Yield cleared, so a later AudioStarted also connects.
+            monitor.emit(.audioStarted(.media))
+            XCTAssertEqual(bt.connectCount, 2)
+        }
+    }
+
+    func testTargetConnectionChangedDoesNotConnect() {
+        let bt = FakeBluetooth()
+        let (coordinator, monitor, notifier, _) = makeCoordinator(config: makeConfig(mode: .steal, yield: true), bluetooth: bt)
+        withExtendedLifetime(coordinator) {
+            monitor.emit(.targetConnectionChanged(true))
+            monitor.emit(.targetConnectionChanged(false))
+        }
+        XCTAssertEqual(bt.connectCount, 0)
+        XCTAssertEqual(notifier.promptCount, 0)
+    }
+
+    // MARK: - coordination: protect the active device via peer presence
+
+    func testCoordinationPeerActiveSuppressesSteal() {
+        let bt = FakeBluetooth()
+        let presence = FakePresence()
+        presence.peerActive = true
+        let coordinator = Coordinator(
+            monitor: FakeMonitor(), bluetooth: bt, notifier: FakeNotifier(),
+            settings: FakeSettings(makeConfig(mode: .steal, yield: true)), presence: presence
+        )
+        coordinator.handle(.audioStarted(.media))
+        XCTAssertEqual(bt.connectCount, 0)
+    }
+
+    func testCoordinationPeerActiveIgnoredWhenToggleOff() {
+        let bt = FakeBluetooth()
+        let presence = FakePresence()
+        presence.peerActive = true
+        let coordinator = Coordinator(
+            monitor: FakeMonitor(), bluetooth: bt, notifier: FakeNotifier(),
+            settings: FakeSettings(makeConfig(mode: .steal, yield: false)), presence: presence
+        )
+        coordinator.handle(.audioStarted(.media))
+        XCTAssertEqual(bt.connectCount, 1)
+    }
+
+    func testCoordinationBroadcastsLocalActiveOnlyWhenHoldingAndPlaying() {
+        let bt = FakeBluetooth()
+        let presence = FakePresence()
+        let coordinator = Coordinator(
+            monitor: FakeMonitor(), bluetooth: bt, notifier: FakeNotifier(),
+            settings: FakeSettings(makeConfig(mode: .steal, yield: true)), presence: presence
+        )
+        withExtendedLifetime(coordinator) {
+            coordinator.handle(.audioStarted(.media))            // playing but not holding
+            XCTAssertEqual(presence.localActive, false)
+            coordinator.handle(.targetConnectionChanged(true))   // now holding
+            XCTAssertEqual(presence.localActive, true)
+            coordinator.handle(.audioStopped)                    // stopped
+            XCTAssertEqual(presence.localActive, false)
+        }
     }
 }

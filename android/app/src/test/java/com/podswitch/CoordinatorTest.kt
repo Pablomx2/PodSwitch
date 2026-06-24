@@ -41,6 +41,16 @@ class CoordinatorTest {
         override fun clearAsk() { askCleared++ }
     }
 
+    private class FakePresence : com.podswitch.core.PresencePort {
+        var peerActive = false
+        var localActive: Boolean? = null
+        override var onPeerChanged: (() -> Unit)? = null
+        override fun peerActiveOnTarget() = peerActive
+        override fun setLocalActive(active: Boolean) { localActive = active }
+        /** Simulate a peer dropping its claim and notifying us. */
+        fun releaseAndNotify() { peerActive = false; onPeerChanged?.invoke() }
+    }
+
     private fun config(
         enabled: Boolean = true,
         mode: Mode = Mode.STEAL,
@@ -239,16 +249,94 @@ class CoordinatorTest {
     }
 
     @Test
-    fun yield_audioStopped_resetsYield() {
+    fun yield_audioStoppedWhileNotHolding_keepsYield() {
+        // The classic bug: another source steals the device (disconnect), our media auto-pauses
+        // (AudioStopped) while we DON'T hold the device. The yield must survive the pause, so we
+        // don't grab it back on the next AudioStarted.
         val connector = FakeConnector()
         val coordinator = Coordinator(FakeSettings(config(mode = Mode.STEAL, yield = true)), connector, FakeNotifier())
 
         coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = true))
-        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = false))
-        coordinator.handle(SwitchEvent.AudioStopped) // fresh session
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = false)) // stolen
+        coordinator.handle(SwitchEvent.AudioStopped) // auto-pause from the steal — NOT a fresh session
+        coordinator.handle(SwitchEvent.AudioStarted(Category.MEDIA))
+
+        assertEquals("yield must survive the steal-induced pause", 0, connector.connectCalls)
+    }
+
+    @Test
+    fun yield_audioStoppedWhileHolding_resetsYield() {
+        // A genuine stop while we hold the device ends the session and clears any stale yield.
+        val connector = FakeConnector()
+        val coordinator = Coordinator(FakeSettings(config(mode = Mode.STEAL, yield = true)), connector, FakeNotifier())
+
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = true)) // we hold it
+        coordinator.handle(SwitchEvent.AudioStopped) // genuine session end
         coordinator.handle(SwitchEvent.AudioStarted(Category.MEDIA))
 
         assertEquals(1, connector.connectCalls)
+    }
+
+    // ---- coordination: protect the active device via peer presence ----
+
+    @Test
+    fun coordination_peerActive_suppressesSteal() {
+        val connector = FakeConnector()
+        val presence = FakePresence().apply { peerActive = true }
+        val coordinator = Coordinator(
+            FakeSettings(config(mode = Mode.STEAL, yield = true)), connector, FakeNotifier(), presence,
+        )
+
+        coordinator.handle(SwitchEvent.AudioStarted(Category.MEDIA))
+
+        assertEquals("a peer is actively playing — don't steal", 0, connector.connectCalls)
+    }
+
+    @Test
+    fun coordination_peerActive_ignoredWhenToggleOff() {
+        val connector = FakeConnector()
+        val presence = FakePresence().apply { peerActive = true }
+        val coordinator = Coordinator(
+            FakeSettings(config(mode = Mode.STEAL, yield = false)), connector, FakeNotifier(), presence,
+        )
+
+        coordinator.handle(SwitchEvent.AudioStarted(Category.MEDIA))
+
+        assertEquals(1, connector.connectCalls)
+    }
+
+    @Test
+    fun coordination_peerRelease_takesOverWhileStillPlaying() {
+        val connector = FakeConnector()
+        val presence = FakePresence().apply { peerActive = true }
+        val coordinator = Coordinator(
+            FakeSettings(config(mode = Mode.STEAL, yield = true)), connector, FakeNotifier(), presence,
+        )
+
+        coordinator.handle(SwitchEvent.AudioStarted(Category.MEDIA)) // suppressed: peer active
+        assertEquals(0, connector.connectCalls)
+
+        presence.releaseAndNotify() // peer stopped → we should take over
+
+        assertEquals("take over once the peer releases", 1, connector.connectCalls)
+    }
+
+    @Test
+    fun coordination_broadcastsLocalActiveOnlyWhenHoldingAndPlaying() {
+        val connector = FakeConnector()
+        val presence = FakePresence()
+        val coordinator = Coordinator(
+            FakeSettings(config(mode = Mode.STEAL, yield = true)), connector, FakeNotifier(), presence,
+        )
+
+        coordinator.handle(SwitchEvent.AudioStarted(Category.MEDIA)) // playing but not yet holding
+        assertEquals(false, presence.localActive)
+
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = true)) // now we hold it
+        assertEquals(true, presence.localActive)
+
+        coordinator.handle(SwitchEvent.AudioStopped) // stopped playing
+        assertEquals(false, presence.localActive)
     }
 
     @Test

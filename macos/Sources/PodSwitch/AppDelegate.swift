@@ -12,17 +12,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let notifier = NotificationManager()
     private let monitor = AudioMonitor()
     private var coordinator: Coordinator!
+    private var connectionMonitor: TargetConnectionMonitor!
+    private var presence: PresenceCoordinator!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        presence = PresenceCoordinator(deviceId: settings.deviceId())
+        presence.updateTarget(settings.config.targetDeviceId)
         coordinator = Coordinator(
             monitor: monitor,
             bluetooth: bluetooth,
             notifier: notifier,
-            settings: settings
+            settings: settings,
+            presence: presence
         )
         notifier.onAccept = { [weak self] in
             self?.coordinator.handle(.userAcceptedSwitch)
         }
+
+        connectionMonitor = TargetConnectionMonitor(
+            targetAddress: { [weak self] in self?.settings.config.targetDeviceId },
+            onChange: { [weak self] connected in
+                self?.coordinator.handle(.targetConnectionChanged(connected))
+            }
+        )
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
@@ -30,6 +42,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         coordinator.start()
+        connectionMonitor.start()
+        presence.start()
         rebuildMenu()
     }
 
@@ -84,6 +98,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         askItem.target = self
         askItem.state = config.mode == .ask ? .on : .off
         menu.addItem(askItem)
+
+        menu.addItem(.separator())
+
+        let protectItem = NSMenuItem(
+            title: "Protect the active device",
+            action: #selector(toggleProtect),
+            keyEquivalent: ""
+        )
+        protectItem.target = self
+        protectItem.state = config.yieldToOtherSource ? .on : .off
+        menu.addItem(protectItem)
 
         menu.addItem(.separator())
 
@@ -160,15 +185,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rebuildMenu()
     }
 
+    @objc private func toggleProtect() {
+        var config = settings.config
+        config.yieldToOtherSource.toggle()
+        settings.config = config
+        rebuildMenu()
+    }
+
     @objc private func selectDevice(_ sender: NSMenuItem) {
         guard let device = sender.representedObject as? IOBluetoothDevice,
               let address = device.addressString else { return }
         let name = device.name ?? address
         settings.setTargetDevice(address: address, name: name)
+        presence.updateTarget(address)
         rebuildMenu()
     }
 
     @objc private func quit() {
+        connectionMonitor.stop()
+        presence.stop()
         coordinator.stop()
         NSApplication.shared.terminate(nil)
     }

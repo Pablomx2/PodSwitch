@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import com.podswitch.core.AudioSource
 import com.podswitch.core.Category
+import com.podswitch.core.PlaybackEdge
 import com.podswitch.core.SwitchEvent
 
 /** Monitors active audio playback, classifying it into a [Category] and debouncing transitions. */
@@ -22,8 +23,13 @@ class AudioMonitor(
 
     private var listener: ((SwitchEvent) -> Unit)? = null
 
-    /** The category currently considered "playing", or null when idle. */
-    private var currentCategory: Category? = null
+    /** Debounces raw category observations into start/stop events (filters transient blips). */
+    private val edge = PlaybackEdge(
+        sustainMillis = MEDIA_SUSTAIN_MS,
+        scheduler = HandlerScheduler(mainHandler),
+        onStarted = { category -> listener?.invoke(SwitchEvent.AudioStarted(category)) },
+        onStopped = { listener?.invoke(SwitchEvent.AudioStopped) },
+    )
 
     private val callback = object : AudioManager.AudioPlaybackCallback() {
         override fun onPlaybackConfigChanged(configs: MutableList<AudioPlaybackConfiguration>) {
@@ -39,8 +45,8 @@ class AudioMonitor(
 
     override fun stop() {
         audioManager.unregisterAudioPlaybackCallback(callback)
+        edge.reset()
         listener = null
-        currentCategory = null
     }
 
     private fun evaluate(configs: List<AudioPlaybackConfiguration>) {
@@ -51,28 +57,18 @@ class AudioMonitor(
             ?.category
 
         val next = callCategory ?: playbackCategory
-        emitTransition(next)
+        edge.update(next)
     }
 
     /** Ordered classification so the highest-priority concurrent stream wins. */
     private data class Classified(val category: Category, val priority: Int)
 
-    private fun emitTransition(next: Category?) {
-        val previous = currentCategory
-        if (next == previous) return
-
-        currentCategory = next
-        if (next == null) {
-            listener?.invoke(SwitchEvent.AudioStopped)
-        } else {
-            listener?.invoke(SwitchEvent.AudioStarted(next))
-        }
-    }
-
     private fun classify(attrs: AudioAttributes): Classified? = when (attrs.usage) {
+        // Note: USAGE_ASSISTANCE_SONIFICATION (UI/keyboard sounds) is deliberately NOT media —
+        // it was causing texting in Google Messages to trigger a switch. USAGE_UNKNOWN stays
+        // media but is gated by the sustain debounce so short blips don't count.
         AudioAttributes.USAGE_MEDIA,
         AudioAttributes.USAGE_GAME,
-        AudioAttributes.USAGE_ASSISTANCE_SONIFICATION,
         AudioAttributes.USAGE_UNKNOWN -> Classified(Category.MEDIA, MEDIA_PRIORITY)
 
         AudioAttributes.USAGE_VOICE_COMMUNICATION,
@@ -89,10 +85,30 @@ class AudioMonitor(
         else -> null
     }
 
+    /** [PlaybackEdge.Scheduler] backed by the main-thread [Handler]. */
+    private class HandlerScheduler(private val handler: Handler) : PlaybackEdge.Scheduler {
+        private var token: Runnable? = null
+
+        override fun schedule(delayMillis: Long, action: () -> Unit) {
+            cancel()
+            val runnable = Runnable { token = null; action() }
+            token = runnable
+            handler.postDelayed(runnable, delayMillis)
+        }
+
+        override fun cancel() {
+            token?.let { handler.removeCallbacks(it) }
+            token = null
+        }
+    }
+
     private companion object {
         // Lower number = higher priority.
         const val CALL_PRIORITY = 0
         const val MEDIA_PRIORITY = 1
         const val NOTIFICATION_PRIORITY = 2
+
+        /** Media must persist this long before it counts as a real start (filters UI blips). */
+        const val MEDIA_SUSTAIN_MS = 1000L
     }
 }

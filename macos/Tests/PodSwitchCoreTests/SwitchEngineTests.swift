@@ -12,25 +12,94 @@ final class SwitchEngineTests: XCTestCase {
         enabled: Bool = true,
         mode: Mode = .steal,
         categories: Set<Category> = [.media],
-        target: String? = "aa-bb-cc-dd-ee-ff"
+        target: String? = "aa-bb-cc-dd-ee-ff",
+        yield: Bool = false
     ) -> Config {
         Config(
             enabled: enabled,
             mode: mode,
             enabledCategories: categories,
-            targetDeviceId: target
+            targetDeviceId: target,
+            yieldToOtherSource: yield
         )
     }
 
     private func status(
         paired: Bool = true,
         active: Bool = false,
-        pending: Bool = false
+        pending: Bool = false,
+        yielded: Bool = false,
+        peer: Bool = false
     ) -> DeviceStatus {
         DeviceStatus(
             targetPaired: paired,
             targetActiveOutput: active,
-            notificationPending: pending
+            notificationPending: pending,
+            targetYielded: yielded,
+            peerActiveOnTarget: peer
+        )
+    }
+
+    // MARK: - yieldToOtherSource guard
+
+    func testYieldOnAndYieldedSuppressesSteal() {
+        XCTAssertEqual(
+            SwitchEngine.decide(event: .audioStarted(.media), config: config(mode: .steal, yield: true), status: status(yielded: true)),
+            .none
+        )
+    }
+
+    func testYieldOnAndYieldedSuppressesAsk() {
+        XCTAssertEqual(
+            SwitchEngine.decide(event: .audioStarted(.media), config: config(mode: .ask, yield: true), status: status(yielded: true)),
+            .none
+        )
+    }
+
+    func testYieldOffIsInertEvenWhenYielded() {
+        XCTAssertEqual(
+            SwitchEngine.decide(event: .audioStarted(.media), config: config(mode: .steal, yield: false), status: status(yielded: true)),
+            .connect
+        )
+    }
+
+    func testYieldOnButNotYieldedConnects() {
+        XCTAssertEqual(
+            SwitchEngine.decide(event: .audioStarted(.media), config: config(mode: .steal, yield: true), status: status(yielded: false)),
+            .connect
+        )
+    }
+
+    func testUserAcceptIgnoresYieldGuard() {
+        XCTAssertEqual(
+            SwitchEngine.decide(event: .userAcceptedSwitch, config: config(yield: true), status: status(yielded: true)),
+            .connect
+        )
+    }
+
+    func testTargetConnectionChangedIsAlwaysNone() {
+        XCTAssertEqual(SwitchEngine.decide(event: .targetConnectionChanged(true), config: config(), status: status()), .none)
+        XCTAssertEqual(SwitchEngine.decide(event: .targetConnectionChanged(false), config: config(), status: status()), .none)
+    }
+
+    func testPeerActiveSuppressesSteal() {
+        XCTAssertEqual(
+            SwitchEngine.decide(event: .audioStarted(.media), config: config(mode: .steal, yield: true), status: status(peer: true)),
+            .none
+        )
+    }
+
+    func testPeerActiveIgnoredWhenYieldOff() {
+        XCTAssertEqual(
+            SwitchEngine.decide(event: .audioStarted(.media), config: config(mode: .steal, yield: false), status: status(peer: true)),
+            .connect
+        )
+    }
+
+    func testNoPeerConnectsNormally() {
+        XCTAssertEqual(
+            SwitchEngine.decide(event: .audioStarted(.media), config: config(mode: .steal, yield: true), status: status(peer: false)),
+            .connect
         )
     }
 
