@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import com.podswitch.core.Coordinator
@@ -43,7 +44,17 @@ class SwitchService : LifecycleService() {
             deviceId = settings.deviceId(),
             targetProvider = { settings.currentConfig().targetDeviceId },
         )
-        coordinator = Coordinator(settings, connector, notifier, presence)
+        coordinator = Coordinator(
+            settings, connector, notifier, presence,
+            debugLog = { msg -> Log.d("PodSwitchPresence", msg) },
+        )
+        // Coordinator's init already claims presence.onPeerChanged for its own take-over logic;
+        // chain onto it (rather than overwrite it) so the ongoing notification also refreshes.
+        val coordinatorPeerChanged = presence.onPeerChanged
+        presence.onPeerChanged = {
+            coordinatorPeerChanged?.invoke()
+            notifier.updateOngoing(presence.peerActiveOnTarget())
+        }
         audioMonitor = AudioMonitor(applicationContext, CallMonitor(applicationContext))
         connectionMonitor = TargetConnectionMonitor(
             context = applicationContext,

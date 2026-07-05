@@ -4,7 +4,7 @@ import PodSwitchCore
 
 /// Menu-bar controller: builds the status menu and drives the `Coordinator`.
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var statusItem: NSStatusItem!
     private let settings = Settings()
@@ -14,6 +14,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var coordinator: Coordinator!
     private var connectionMonitor: TargetConnectionMonitor!
     private var presence: PresenceCoordinator!
+    /// The "Peer active: yes/no" item, kept around so `menuWillOpen` can refresh its title in
+    /// place without rebuilding (and thus swapping out) the menu that's mid-open.
+    private var peerStatusItem: NSMenuItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         presence = PresenceCoordinator(deviceId: settings.deviceId())
@@ -110,6 +113,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         protectItem.state = config.yieldToOtherSource ? .on : .off
         menu.addItem(protectItem)
 
+        if config.yieldToOtherSource {
+            let peerActive = presence.peerActiveOnTarget()
+            let statusMenuItem = NSMenuItem(
+                title: "Peer active: \(peerActive ? "yes" : "no")",
+                action: nil,
+                keyEquivalent: ""
+            )
+            statusMenuItem.isEnabled = false
+            menu.addItem(statusMenuItem)
+            peerStatusItem = statusMenuItem
+        } else {
+            peerStatusItem = nil
+        }
+
         menu.addItem(.separator())
 
         let deviceHeader = NSMenuItem(title: "Device", action: nil, keyEquivalent: "")
@@ -159,7 +176,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         quitItem.target = self
         menu.addItem(quitItem)
 
+        menu.delegate = self
         statusItem.menu = menu
+    }
+
+    /// Refresh the "Peer active" line in place right before the menu is shown, so it reflects
+    /// current state without needing separate observer plumbing on every presence change.
+    func menuWillOpen(_ menu: NSMenu) {
+        guard let peerStatusItem else { return }
+        let peerActive = presence.peerActiveOnTarget()
+        peerStatusItem.title = "Peer active: \(peerActive ? "yes" : "no")"
     }
 
     // MARK: - Actions

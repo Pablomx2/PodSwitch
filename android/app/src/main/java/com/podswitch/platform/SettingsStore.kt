@@ -80,7 +80,7 @@ class AndroidSettingsStore(
             mode = mode,
             enabledCategories = categories,
             targetDeviceId = this[KEY_TARGET_ADDRESS],
-            yieldToOtherSource = this[KEY_YIELD] ?: false,
+            yieldToOtherSource = this[KEY_YIELD] ?: true,
         )
     }
 

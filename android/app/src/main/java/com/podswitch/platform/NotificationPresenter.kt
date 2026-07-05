@@ -39,13 +39,22 @@ class AndroidNotificationPresenter(
     }
 
     /** The ongoing notification shown by the foreground service. */
-    fun buildOngoing(): Notification =
+    fun buildOngoing(peerActive: Boolean = false): Notification =
         Notification.Builder(context, CHANNEL_SERVICE)
             .setContentTitle(context.getString(R.string.ongoing_title))
-            .setContentText(context.getString(R.string.ongoing_text))
+            .setContentText(
+                context.getString(
+                    if (peerActive) R.string.ongoing_text_peer_active else R.string.ongoing_text
+                )
+            )
             .setSmallIcon(android.R.drawable.stat_sys_headset)
             .setOngoing(true)
             .build()
+
+    /** Re-post the ongoing notification to reflect a change in peer-active status. */
+    fun updateOngoing(peerActive: Boolean) {
+        manager.notify(ID_ONGOING, buildOngoing(peerActive))
+    }
 
     override fun showAsk() {
         val acceptIntent = Intent(context, SwitchAcceptReceiver::class.java).apply {

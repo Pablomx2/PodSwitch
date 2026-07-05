@@ -6,6 +6,8 @@ class Coordinator(
     private val connector: BluetoothConnector,
     private val notifier: NotificationPresenter,
     private val presence: PresencePort? = null,
+    /** Testable logging seam; no-op by default so plain-JVM unit tests need no Android framework. */
+    private val debugLog: (String) -> Unit = {},
 ) {
     private var notificationPending: Boolean = false
 
@@ -74,7 +76,14 @@ class Coordinator(
             peerActiveOnTarget = presence?.peerActiveOnTarget() ?: false,
         )
 
-        when (SwitchEngine.decide(event, config, status)) {
+        val action = SwitchEngine.decide(event, config, status)
+        if (config.yieldToOtherSource && status.peerActiveOnTarget && action == SwitchAction.None) {
+            debugLog("suppressed steal (peer active) for event=$event")
+        } else {
+            debugLog("decision for event=$event: $action")
+        }
+
+        when (action) {
             SwitchAction.None -> Unit
 
             SwitchAction.Notify -> {

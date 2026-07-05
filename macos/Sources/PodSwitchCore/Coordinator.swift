@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Wires the audio monitor to the decision engine and executes the resulting action.
 @MainActor
@@ -9,6 +10,7 @@ public final class Coordinator: AudioMonitorDelegate {
     private let notifier: any Notifying
     private let settings: any SettingsStore
     private let presence: (any PresencePort)?
+    private let logger = Logger(subsystem: "com.podswitch.core", category: "Presence")
 
     /// True while an ASK prompt is on screen and awaiting the user.
     private(set) var notificationPending = false
@@ -84,6 +86,11 @@ public final class Coordinator: AudioMonitorDelegate {
         let config = settings.config
         let status = currentStatus(for: config)
         let action = SwitchEngine.decide(event: event, config: config, status: status)
+        if config.yieldToOtherSource && status.peerActiveOnTarget && action == .none {
+            logger.info("suppressed steal (peer active) for event=\(String(describing: event), privacy: .public)")
+        } else {
+            logger.debug("decision for event=\(String(describing: event), privacy: .public): \(String(describing: action), privacy: .public)")
+        }
         execute(action, for: event, config: config)
 
         if case .audioStopped = event, targetConnected {

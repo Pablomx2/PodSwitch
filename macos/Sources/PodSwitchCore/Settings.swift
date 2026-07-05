@@ -20,6 +20,9 @@ public final class Settings: SettingsStore {
         if defaults.object(forKey: Key.enabled) == nil {
             defaults.set(true, forKey: Key.enabled)
         }
+        if defaults.object(forKey: Key.yield) == nil {
+            defaults.set(true, forKey: Key.yield)
+        }
     }
 
     /// Display name of the configured target device, if any.

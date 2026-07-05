@@ -11,6 +11,7 @@
     <!-- Ongoing notification -->
     <string name="ongoing_title">PodSwitch active</string>
     <string name="ongoing_text">Watching for audio to move to the target Bluetooth device.</string>
+    <string name="ongoing_text_peer_active">Peer device is actively playing — holding off on switching.</string>
 
     <!-- Ask notification -->
     <string name="ask_title">Move audio here?</string>
