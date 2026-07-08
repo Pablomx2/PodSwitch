@@ -321,6 +321,50 @@ class CoordinatorTest {
         assertEquals("take over once the peer releases", 1, connector.connectCalls)
     }
 
+    // ---- coordination: reclaim after the peer goes idle (regression: was permanently stuck) ----
+
+    @Test
+    fun coordination_peerGoingInactiveClearsStaleYieldAndReclaimsIfPlaying() {
+        // A peer takes the target (targetYielded=true via a Bluetooth disconnect), then reports
+        // it's no longer active. We're already playing, so we should reclaim immediately instead
+        // of staying yielded forever just because the earbuds never reconnected to us at the
+        // OS/Bluetooth level.
+        val connector = FakeConnector()
+        val presence = FakePresence().apply { peerActive = true }
+        val coordinator = Coordinator(
+            FakeSettings(config(mode = Mode.STEAL, yield = true)), connector, FakeNotifier(), presence,
+        )
+
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = true))
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = false)) // taken by the peer
+        coordinator.handle(SwitchEvent.AudioStarted(Category.MEDIA)) // suppressed: peer active
+        assertEquals(0, connector.connectCalls)
+
+        presence.releaseAndNotify() // peer confirmed it stopped
+
+        assertEquals("must reclaim once the peer confirms it's inactive", 1, connector.connectCalls)
+    }
+
+    @Test
+    fun coordination_peerGoingInactiveClearsStaleYieldForALaterPlay() {
+        // Same as above, but we weren't already playing when the peer went idle — the yield flag
+        // must still be cleared so the *next* AudioStarted succeeds immediately rather than
+        // staying stuck on the stale Bluetooth-based guard.
+        val connector = FakeConnector()
+        val presence = FakePresence().apply { peerActive = true }
+        val coordinator = Coordinator(
+            FakeSettings(config(mode = Mode.STEAL, yield = true)), connector, FakeNotifier(), presence,
+        )
+
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = true))
+        coordinator.handle(SwitchEvent.TargetConnectionChanged(connected = false)) // taken by the peer
+
+        presence.releaseAndNotify() // peer confirmed it stopped; not playing yet
+
+        coordinator.handle(SwitchEvent.AudioStarted(Category.MEDIA)) // later play attempt
+        assertEquals(1, connector.connectCalls)
+    }
+
     @Test
     fun coordination_broadcastsLocalActiveOnlyWhenHoldingAndPlaying() {
         val connector = FakeConnector()

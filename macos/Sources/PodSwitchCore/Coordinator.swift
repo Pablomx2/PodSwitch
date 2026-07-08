@@ -21,6 +21,12 @@ public final class Coordinator: AudioMonitorDelegate {
     /// Target was taken by another source (lost while we held it) and not yet returned.
     private var targetYielded = false
 
+    /// True once we've received at least one real presence packet this run. Distinguishes "the
+    /// coordination layer confirms no peer is active" from "we've never heard anything" (broken
+    /// networking, no Local Network permission, etc.) — only in the former case is a fresh
+    /// `peerActiveOnTarget == false` reading trustworthy enough to clear `targetYielded`.
+    private var coordinationConfirmedLive = false
+
     /// Whether local audio is currently playing, and of what category (for coordination claims).
     private var localPlaying = false
     private var localCategory: Category?
@@ -109,6 +115,15 @@ public final class Coordinator: AudioMonitorDelegate {
 
     /// A peer's active state changed (typically it released the target). Take over if we can.
     private func onPeerChanged() {
+        // This callback only fires on receipt of a real presence packet, so reaching it at all
+        // is proof coordination is working this run.
+        coordinationConfirmedLive = true
+        if presence?.peerActiveOnTarget() == false {
+            // The peer confirmed it's no longer active — the Bluetooth-based yield guard (a
+            // fallback for when we have no presence data) is now stale, even if the earbuds
+            // stay connected to the peer at the OS level. Clear it so we can reclaim.
+            targetYielded = false
+        }
         if localPlaying {
             handle(.audioStarted(localCategory ?? .media))
         }
@@ -137,12 +152,19 @@ public final class Coordinator: AudioMonitorDelegate {
             targetYielded = false
             targetConnected = true
         }
+        let peerActive = presence?.peerActiveOnTarget() ?? false
+        if coordinationConfirmedLive && !peerActive {
+            // Self-healing fallback for the rare case where the peer's release notification was
+            // lost and no later packet arrived to trigger onPeerChanged: since we know
+            // coordination is live, trust this fresh (unexpired) read too.
+            targetYielded = false
+        }
         return DeviceStatus(
             targetPaired: bluetooth.isPaired(deviceId: target),
             targetActiveOutput: active,
             notificationPending: notificationPending,
             targetYielded: targetYielded,
-            peerActiveOnTarget: presence?.peerActiveOnTarget() ?? false
+            peerActiveOnTarget: peerActive
         )
     }
 

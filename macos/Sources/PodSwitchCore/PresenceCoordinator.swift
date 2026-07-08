@@ -27,6 +27,7 @@ public final class PresenceCoordinator: PresencePort, @unchecked Sendable {
     private var fd: Int32 = -1
     private var readSource: DispatchSourceRead?
     private var heartbeat: DispatchSourceTimer?
+    private var releaseTimer: DispatchSourceTimer?
     private var localActive = false
     private var lastPeerActive = false
     private var normalizedTarget: String?
@@ -65,6 +66,8 @@ public final class PresenceCoordinator: PresencePort, @unchecked Sendable {
             self.localActive = active
             if active {
                 self.logger.debug("local active=true, sending CLAIM + starting heartbeat")
+                self.releaseTimer?.cancel()
+                self.releaseTimer = nil
                 self.send(.claim)
                 let timer = DispatchSource.makeTimerSource(queue: self.queue)
                 timer.schedule(deadline: .now() + Self.heartbeat, repeating: Self.heartbeat)
@@ -72,12 +75,24 @@ public final class PresenceCoordinator: PresencePort, @unchecked Sendable {
                 self.heartbeat = timer
                 timer.resume()
             } else {
-                // Don't send an immediate RELEASE: a brief pause (e.g. between tracks) would hand
-                // the target to a peer that's only reacting to a momentary gap. Just stop
-                // heartbeating and let the peer's registry entry TTL-expire (Self.ttl) instead.
-                self.logger.debug("local active=false, stopping heartbeat (claim will TTL-expire)")
+                // Don't send RELEASE immediately: a brief pause (e.g. between tracks) would hand
+                // the target to a peer that's only reacting to a momentary gap. Instead, stop
+                // heartbeating now and send RELEASE after a debounce -- long enough to ride out a
+                // track change, but still short enough to proactively notify the peer of a genuine
+                // stop (rather than relying solely on the passive TTL, which never fires if no
+                // further packets arrive to trigger a re-check).
+                self.logger.debug("local active=false, stopping heartbeat, scheduling delayed RELEASE")
                 self.heartbeat?.cancel()
                 self.heartbeat = nil
+                let timer = DispatchSource.makeTimerSource(queue: self.queue)
+                timer.schedule(deadline: .now() + Self.releaseDebounce)
+                timer.setEventHandler { [weak self] in
+                    self?.logger.debug("debounce elapsed, sending RELEASE")
+                    self?.send(.release)
+                    self?.releaseTimer = nil
+                }
+                self.releaseTimer = timer
+                timer.resume()
             }
         }
     }
@@ -153,6 +168,7 @@ public final class PresenceCoordinator: PresencePort, @unchecked Sendable {
 
     private func closeSocket() {
         heartbeat?.cancel(); heartbeat = nil
+        releaseTimer?.cancel(); releaseTimer = nil
         readSource?.cancel(); readSource = nil
         if fd >= 0 { close(fd); fd = -1 }
         localActive = false
@@ -292,4 +308,5 @@ public final class PresenceCoordinator: PresencePort, @unchecked Sendable {
     private static let port = 54321
     private static let heartbeat: DispatchTimeInterval = .seconds(2)
     private static let ttl: Int64 = 6000
+    private static let releaseDebounce: DispatchTimeInterval = .seconds(4)
 }

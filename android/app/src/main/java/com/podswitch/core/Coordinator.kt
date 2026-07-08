@@ -17,6 +17,12 @@ class Coordinator(
     /** Target was taken by another source (connected -> disconnected, not by us) and not yet freed. */
     private var targetYielded: Boolean = false
 
+    /** True once we've received at least one real presence packet this run. Distinguishes "the
+     *  coordination layer confirms no peer is active" from "we've never heard anything" (broken
+     *  networking, permissions, etc.) — only in the former case is a fresh
+     *  peerActiveOnTarget == false reading trustworthy enough to clear [targetYielded]. */
+    private var coordinationConfirmedLive: Boolean = false
+
     /** Whether local audio is currently playing, and of what category (for coordination claims). */
     private var localPlaying: Boolean = false
     private var localCategory: Category? = null
@@ -68,12 +74,20 @@ class Coordinator(
             targetConnected = true
         }
 
+        val peerActive = presence?.peerActiveOnTarget() ?: false
+        if (coordinationConfirmedLive && !peerActive) {
+            // Self-healing fallback for when the peer's release notification was lost and no
+            // later packet arrived to trigger onPeerChanged: since we know coordination is live,
+            // trust this fresh (unexpired) read too, rather than relying only on onPeerChanged.
+            targetYielded = false
+        }
+
         val status = DeviceStatus(
             targetPaired = paired,
             targetActiveOutput = active,
             notificationPending = notificationPending,
             targetYielded = targetYielded,
-            peerActiveOnTarget = presence?.peerActiveOnTarget() ?: false,
+            peerActiveOnTarget = peerActive,
         )
 
         val action = SwitchEngine.decide(event, config, status)
@@ -124,6 +138,15 @@ class Coordinator(
 
     /** A peer's active state changed (typically it released the target). Take over if we can. */
     private fun onPeerChanged() {
+        // This callback only fires on receipt of a real presence packet, so reaching it at all
+        // is proof coordination is working this run.
+        coordinationConfirmedLive = true
+        if (presence?.peerActiveOnTarget() == false) {
+            // The peer confirmed it's no longer active — the Bluetooth-based yield guard (a
+            // fallback for when we have no presence data) is now stale, even if the earbuds
+            // stay connected to the peer at the OS level. Clear it so we can reclaim.
+            targetYielded = false
+        }
         if (localPlaying) {
             handle(SwitchEvent.AudioStarted(localCategory ?: Category.MEDIA))
         }

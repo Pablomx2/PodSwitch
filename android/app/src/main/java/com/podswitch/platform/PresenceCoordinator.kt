@@ -52,6 +52,7 @@ class AndroidPresenceCoordinator(
 
     private val sender = Executors.newSingleThreadScheduledExecutor()
     private var heartbeat: java.util.concurrent.ScheduledFuture<*>? = null
+    private var releaseTimer: java.util.concurrent.ScheduledFuture<*>? = null
     private var localActive = false
 
     private var lastPeerActive = false
@@ -92,6 +93,7 @@ class AndroidPresenceCoordinator(
     fun stop() {
         running.set(false)
         cancelHeartbeat()
+        cancelReleaseTimer()
         runCatching { socket?.close() }
         socket = null
         runCatching { multicastLock?.release() }
@@ -113,17 +115,29 @@ class AndroidPresenceCoordinator(
             localActive = active
             if (active) {
                 Log.d(TAG, "local active=true, sending CLAIM + starting heartbeat")
+                cancelReleaseTimer()
                 sendNow(PresenceMessage.Type.CLAIM)
                 heartbeat = sender.scheduleAtFixedRate(
                     { sendNow(PresenceMessage.Type.CLAIM) },
                     HEARTBEAT_MS, HEARTBEAT_MS, java.util.concurrent.TimeUnit.MILLISECONDS,
                 )
             } else {
-                // Don't send an immediate RELEASE: a brief pause (e.g. between tracks) would hand
-                // the target to a peer that's only reacting to a momentary gap. Just stop
-                // heartbeating and let the peer's registry entry TTL-expire (TTL_MS) instead.
-                Log.d(TAG, "local active=false, stopping heartbeat (claim will TTL-expire)")
+                // Don't send RELEASE immediately: a brief pause (e.g. between tracks) would hand
+                // the target to a peer that's only reacting to a momentary gap. Instead, stop
+                // heartbeating now and send RELEASE after a debounce -- long enough to ride out a
+                // track change, but still short enough to proactively notify the peer of a genuine
+                // stop (rather than relying solely on the passive TTL, which never fires if no
+                // further packets arrive to trigger a re-check).
+                Log.d(TAG, "local active=false, stopping heartbeat, scheduling delayed RELEASE")
                 cancelHeartbeat()
+                releaseTimer = sender.schedule(
+                    {
+                        Log.d(TAG, "debounce elapsed, sending RELEASE")
+                        sendNow(PresenceMessage.Type.RELEASE)
+                        releaseTimer = null
+                    },
+                    RELEASE_DEBOUNCE_MS, java.util.concurrent.TimeUnit.MILLISECONDS,
+                )
             }
         }
     }
@@ -131,6 +145,11 @@ class AndroidPresenceCoordinator(
     private fun cancelHeartbeat() {
         heartbeat?.cancel(false)
         heartbeat = null
+    }
+
+    private fun cancelReleaseTimer() {
+        releaseTimer?.cancel(false)
+        releaseTimer = null
     }
 
     private fun sendNow(type: PresenceMessage.Type) {
@@ -227,5 +246,6 @@ class AndroidPresenceCoordinator(
         const val PORT = 54321
         const val HEARTBEAT_MS = 2000L
         const val TTL_MS = 6000L
+        const val RELEASE_DEBOUNCE_MS = 4000L
     }
 }

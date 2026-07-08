@@ -388,4 +388,60 @@ final class CoordinatorTests: XCTestCase {
             XCTAssertEqual(presence.localActive, false)
         }
     }
+
+    // MARK: - coordination: reclaim after the peer goes idle (regression: was permanently stuck)
+
+    /// A peer takes the target (targetYielded=true), then reports it's no longer active (via a
+    /// presence packet, e.g. a debounced RELEASE). We were already playing, so the coordinator
+    /// should reclaim immediately instead of staying yielded forever just because the earbuds
+    /// never reconnected to us at the OS/Bluetooth level.
+    func testPeerGoingInactiveClearsStaleYieldAndReclaimsIfPlaying() async {
+        let bt = FakeBluetooth()
+        let presence = FakePresence()
+        presence.peerActive = true
+        let coordinator = Coordinator(
+            monitor: FakeMonitor(), bluetooth: bt, notifier: FakeNotifier(),
+            settings: FakeSettings(makeConfig(mode: .steal, yield: true)), presence: presence
+        )
+        withExtendedLifetime(coordinator) {
+            coordinator.handle(.targetConnectionChanged(true))
+            coordinator.handle(.targetConnectionChanged(false)) // taken by the peer
+            coordinator.handle(.audioStarted(.media))            // suppressed: peer is active
+            XCTAssertEqual(bt.connectCount, 0)
+
+            presence.peerActive = false
+            presence.onPeerChanged?()                            // peer confirmed it stopped
+        }
+        // Coordinator's real onPeerChanged wiring hops via Task { @MainActor in ... }; yield so
+        // that enqueued job runs before we assert.
+        await Task.yield()
+
+        XCTAssertEqual(bt.connectCount, 1)
+    }
+
+    /// Same as above, but we weren't already playing when the peer went idle — the yield flag
+    /// must still be cleared so the *next* audioStarted succeeds immediately rather than staying
+    /// stuck on the stale Bluetooth-based guard.
+    func testPeerGoingInactiveClearsStaleYieldForALaterPlay() async {
+        let bt = FakeBluetooth()
+        let presence = FakePresence()
+        presence.peerActive = true
+        let coordinator = Coordinator(
+            monitor: FakeMonitor(), bluetooth: bt, notifier: FakeNotifier(),
+            settings: FakeSettings(makeConfig(mode: .steal, yield: true)), presence: presence
+        )
+        withExtendedLifetime(coordinator) {
+            coordinator.handle(.targetConnectionChanged(true))
+            coordinator.handle(.targetConnectionChanged(false)) // taken by the peer
+
+            presence.peerActive = false
+            presence.onPeerChanged?()                            // peer confirmed it stopped; not playing yet
+        }
+        await Task.yield()
+
+        withExtendedLifetime(coordinator) {
+            coordinator.handle(.audioStarted(.media))            // later play attempt
+        }
+        XCTAssertEqual(bt.connectCount, 1)
+    }
 }
