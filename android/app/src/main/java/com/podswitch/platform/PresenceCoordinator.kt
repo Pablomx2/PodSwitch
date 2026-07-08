@@ -246,6 +246,6 @@ class AndroidPresenceCoordinator(
         const val PORT = 54321
         const val HEARTBEAT_MS = 2000L
         const val TTL_MS = 6000L
-        const val RELEASE_DEBOUNCE_MS = 4000L
+        const val RELEASE_DEBOUNCE_MS = 1500L
     }
 }

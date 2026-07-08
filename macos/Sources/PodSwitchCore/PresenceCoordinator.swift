@@ -308,5 +308,5 @@ public final class PresenceCoordinator: PresencePort, @unchecked Sendable {
     private static let port = 54321
     private static let heartbeat: DispatchTimeInterval = .seconds(2)
     private static let ttl: Int64 = 6000
-    private static let releaseDebounce: DispatchTimeInterval = .seconds(4)
+    private static let releaseDebounce: DispatchTimeInterval = .milliseconds(1500)
 }
