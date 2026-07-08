@@ -61,9 +61,9 @@ cat > "${APP_DIR}/Contents/Info.plist" <<PLIST
     <key>CFBundleIdentifier</key>
     <string>${BUNDLE_ID}</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>2</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>0.2.0</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleIconFile</key>
