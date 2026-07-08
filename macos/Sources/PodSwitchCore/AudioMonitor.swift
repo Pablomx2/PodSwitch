@@ -67,7 +67,7 @@ public final class AudioMonitor: AudioMonitoring {
         }
     }
 
-    public init(debounceInterval: TimeInterval = 0.75, sustainInterval: TimeInterval = 1.0) {
+    public init(debounceInterval: TimeInterval = 0.3, sustainInterval: TimeInterval = 1.0) {
         self.detector = PlaybackEdgeDetector(
             debounceInterval: debounceInterval,
             sustainInterval: sustainInterval,

@@ -109,6 +109,6 @@ class AudioMonitor(
         const val NOTIFICATION_PRIORITY = 2
 
         /** Media must persist this long before it counts as a real start (filters UI blips). */
-        const val MEDIA_SUSTAIN_MS = 1000L
+        const val MEDIA_SUSTAIN_MS = 500L
     }
 }
