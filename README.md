@@ -195,6 +195,44 @@ dotnet publish PodSwitch.App -c Release -r win-x64 --self-contained `
 - **Device matching** on macOS/Windows relies on the system output device name
   matching the Bluetooth device name.
 
+## Fork history — what changed from upstream
+
+This is a fork of [Felip6499/PodSwitch](https://github.com/Felip6499/PodSwitch), which
+established the original multi‑platform (macOS/Android/Windows) **v0.1.0** baseline: the
+core architecture, the shared decision engine, and the initial per‑platform audio/Bluetooth
+plumbing. Everything below was added in this fork, on top of that baseline:
+
+- **Peer‑to‑peer coordination ("Protect the active device").** New, opt‑in feature so two
+  PodSwitch devices sharing the same earbuds don't fight over them. A reactive fallback
+  (watching the target's Bluetooth link state) works with zero setup; layered on top, an
+  HMAC‑authenticated UDP multicast/broadcast presence protocol lets devices detect *which
+  one is actively holding and playing* on the shared device and defer accordingly —
+  self‑healing (6 s claim TTL) if a peer sleeps or crashes, no cloud/account involved.
+- **Networking hardened.** The first presence‑protocol pass didn't reliably reach peers
+  (wrong multicast interface, no fallback for multicast‑filtering Wi‑Fi). Fixed by pinning
+  outgoing multicast to the active Wi‑Fi interface on both platforms, adding a broadcast
+  fallback, and adding structured logging plus a visible "peer active" status so it's
+  debuggable without a console. Defaulted on once verified.
+- **Fixed a stuck‑yield bug** where, once a Mac yielded the target to a phone, it could
+  never reclaim it again — even after the phone stopped playing entirely.
+- **Snappier hand‑off.** Release debounce cut from 4 s → 1.5 s; macOS's stop debounce from
+  750 ms → 300 ms; Android's media‑start sustain from 1000 ms → 500 ms.
+- **Fixed an Android false‑trigger.** Texting in Google Messages (keyboard/UI sound
+  effects) was triggering a switch; UI sounds are no longer classified as media, and a new
+  debounced `PlaybackEdge` state machine (mirroring the macOS edge detector) requires media
+  to sustain briefly before it counts.
+- **macOS: non‑blocking Bluetooth connect.** `IOBluetoothDevice.openConnection()` blocks
+  the calling thread; a slow or failing connect could stall the whole menu‑bar app. Moved
+  off the main thread.
+- **macOS: mute‑aware playback detection (v0.2.1).** Muting the Mac's system output now
+  correctly counts as "not playing," so a muted Mac won't steal the target device from
+  whatever is actually making sound.
+- **Android: side‑by‑side debug/release installs**, plus substantially expanded test
+  coverage (`PlaybackEdge`, `Presence`, and many more `Coordinator` scenarios) on both
+  platforms.
+
+Full commit‑by‑commit diff: [compare view](https://github.com/Felip6499/PodSwitch/compare/main...Pablomx2:PodSwitch:main).
+
 ## Project status
 
 Personal, single‑maintainer, **v0.2.1**. The shared decision engine is fully
