@@ -20,15 +20,23 @@ public final class AudioMonitor: AudioMonitoring {
     private var lastNowPlayingHasSession = false
     private var nowPlayingAvailable = false
 
+    /// Device currently wired up for mute notifications; tracked separately from
+    /// `defaultDeviceID` since mute tracking runs on every macOS version.
+    private var muteDeviceID = AudioObjectID(kAudioObjectUnknown)
+    private var lastMuted = false
+
     /// macOS 14+ process signal, when active.
     @available(macOS 14.0, *)
     private var processSignal: ProcessPlaybackSignal? { processSignalBox as? ProcessPlaybackSignal }
 
-    /// Combined playback state: MediaRemote when a media session is active, else
-    /// the broad process-output signal.
+    /// Combined playback state: muted always wins, then MediaRemote when a media
+    /// session is active, else the broad process-output signal (or, pre-macOS 14,
+    /// the raw device-running signal).
     private func combinedPlaying() -> Bool {
+        if lastMuted { return false }
         if nowPlayingAvailable && lastNowPlayingHasSession { return lastNowPlaying }
-        return lastProcessPlaying
+        if processSignalBox != nil { return lastProcessPlaying }
+        return readIsRunning(on: defaultDeviceID)
     }
 
     private func recomputeCombined() {
@@ -55,6 +63,12 @@ public final class AudioMonitor: AudioMonitoring {
     private static let isRunningAddress = AudioObjectPropertyAddress(
         mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
         mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain
+    )
+
+    private static let muteAddress = AudioObjectPropertyAddress(
+        mSelector: kAudioDevicePropertyMute,
+        mScope: kAudioDevicePropertyScopeOutput,
         mElement: kAudioObjectPropertyElementMain
     )
 
@@ -87,6 +101,8 @@ public final class AudioMonitor: AudioMonitoring {
     public func start() {
         guard !started else { return }
         started = true
+
+        startMuteTracking()
 
         if #available(macOS 14.0, *) {
             let signal = ProcessPlaybackSignal()
@@ -124,7 +140,7 @@ public final class AudioMonitor: AudioMonitoring {
                 listenerBlock
             )
             attachToCurrentDefaultDevice()
-            detector.prime(running: readIsRunning(on: defaultDeviceID))
+            detector.prime(running: combinedPlaying())
         }
     }
 
@@ -132,6 +148,7 @@ public final class AudioMonitor: AudioMonitoring {
         guard started else { return }
         started = false
 
+        stopMuteTracking()
         detector.reset()
 
         nowPlaying?.stop()
@@ -158,6 +175,7 @@ public final class AudioMonitor: AudioMonitoring {
 
     private static var mutableDefaultDeviceAddress = AudioMonitor.defaultDeviceAddress
     private static var mutableIsRunningAddress = AudioMonitor.isRunningAddress
+    private static var mutableMuteAddress = AudioMonitor.muteAddress
 
     private func attachToCurrentDefaultDevice() {
         defaultDeviceID = readDefaultOutputDevice()
@@ -215,13 +233,76 @@ public final class AudioMonitor: AudioMonitoring {
         if selectors.contains(kAudioHardwarePropertyDefaultOutputDevice) {
             detachFromCurrentDefaultDevice()
             attachToCurrentDefaultDevice()
-            let running = readIsRunning(on: defaultDeviceID)
-            detector.deviceChanged(runningNow: running)
+            detector.deviceChanged(runningNow: combinedPlaying())
         }
 
         if selectors.contains(kAudioDevicePropertyDeviceIsRunningSomewhere) {
-            let running = readIsRunning(on: defaultDeviceID)
-            detector.runningChanged(running)
+            recomputeCombined()
+        }
+    }
+
+    // MARK: - Mute tracking
+
+    /// Watches the default output device's mute state, independent of which
+    /// playback-detection strategy is active; re-targets itself as the default
+    /// device changes.
+    private func startMuteTracking() {
+        let systemObject = AudioObjectID(kAudioObjectSystemObject)
+        AudioObjectAddPropertyListenerBlock(
+            systemObject, &Self.mutableDefaultDeviceAddress, DispatchQueue.main, muteRoutingBlock
+        )
+        reattachMuteListener()
+    }
+
+    private func stopMuteTracking() {
+        let systemObject = AudioObjectID(kAudioObjectSystemObject)
+        AudioObjectRemovePropertyListenerBlock(
+            systemObject, &Self.mutableDefaultDeviceAddress, DispatchQueue.main, muteRoutingBlock
+        )
+        detachMuteListener()
+        lastMuted = false
+    }
+
+    private func reattachMuteListener() {
+        detachMuteListener()
+        let device = readDefaultOutputDevice()
+        guard device != AudioObjectID(kAudioObjectUnknown),
+              AudioObjectHasProperty(device, &Self.mutableMuteAddress) else {
+            lastMuted = false
+            return
+        }
+        muteDeviceID = device
+        AudioObjectAddPropertyListenerBlock(device, &Self.mutableMuteAddress, DispatchQueue.main, muteChangedBlock)
+        refreshMuteState()
+    }
+
+    private func detachMuteListener() {
+        guard muteDeviceID != AudioObjectID(kAudioObjectUnknown) else { return }
+        AudioObjectRemovePropertyListenerBlock(muteDeviceID, &Self.mutableMuteAddress, DispatchQueue.main, muteChangedBlock)
+        muteDeviceID = AudioObjectID(kAudioObjectUnknown)
+    }
+
+    private func refreshMuteState() {
+        guard muteDeviceID != AudioObjectID(kAudioObjectUnknown) else { return }
+        var value: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        let status = AudioObjectGetPropertyData(muteDeviceID, &Self.mutableMuteAddress, 0, nil, &size, &value)
+        lastMuted = status == noErr && value != 0
+    }
+
+    private lazy var muteRoutingBlock: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+        Task { @MainActor [weak self] in
+            guard let self, self.started else { return }
+            self.reattachMuteListener()
+            self.recomputeCombined()
+        }
+    }
+
+    private lazy var muteChangedBlock: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+        Task { @MainActor [weak self] in
+            guard let self, self.started else { return }
+            self.refreshMuteState()
+            self.recomputeCombined()
         }
     }
 }

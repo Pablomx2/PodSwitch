@@ -12,7 +12,7 @@ AirPods auto‑switching, but for *any* headphones and *any* devices you choose.
 ![Android](https://img.shields.io/badge/Android-8.0%2B%20(API%2026)-06B6D4)
 ![Windows](https://img.shields.io/badge/Windows-10%2F11-06B6D4)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/status-0.2.0%20·%20personal%20project-orange)
+![Status](https://img.shields.io/badge/status-0.2.1%20·%20personal%20project-orange)
 
 </div>
 
@@ -197,7 +197,7 @@ dotnet publish PodSwitch.App -c Release -r win-x64 --self-contained `
 
 ## Project status
 
-Personal, single‑maintainer, **v0.2.0**. The shared decision engine is fully
+Personal, single‑maintainer, **v0.2.1**. The shared decision engine is fully
 unit‑tested on all three platforms (macOS, Android, Windows). macOS and the Windows
 connect are validated on real hardware (the Windows switch is just slower — see
 *Switch speed*). Issues and PRs are welcome but support is best‑effort.

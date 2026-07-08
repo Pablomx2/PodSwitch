@@ -23,8 +23,8 @@ android {
         applicationId = "com.podswitch"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -41,6 +41,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Distinct app ID + label so a debug build can be installed alongside a release
+            // build on the same device instead of overwriting it.
+            applicationIdSuffix = ".debug"
+            resValue("string", "app_name", "PodSwitch Debug")
+        }
         release {
             // Kept off for 0.1.0 so the shipped build behaves exactly like the tested one.
             // Enable (with verified keep-rules) once validated on a real device.
