@@ -12,7 +12,7 @@ AirPods auto‑switching, but for *any* headphones and *any* devices you choose.
 ![Android](https://img.shields.io/badge/Android-8.0%2B%20(API%2026)-06B6D4)
 ![Windows](https://img.shields.io/badge/Windows-10%2F11-06B6D4)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/status-0.2.1%20·%20personal%20project-orange)
+![Status](https://img.shields.io/badge/status-0.2.2%20·%20personal%20project-orange)
 
 </div>
 
@@ -230,12 +230,18 @@ plumbing. Everything below was added in this fork, on top of that baseline:
 - **Android: side‑by‑side debug/release installs**, plus substantially expanded test
   coverage (`PlaybackEdge`, `Presence`, and many more `Coordinator` scenarios) on both
   platforms.
+- **Android: on/off controls outside the app (v0.2.2).** The ongoing notification now has
+  a "Turn off" action; a new home‑screen widget toggles PodSwitch (tap the icon) and opens
+  the app (tap the label); and the Quick Settings tile toggles on/off with the current
+  STEAL/ASK mode shown in its subtitle. The tile is also the recommended integration point
+  for Samsung Routines, which can drive a quick‑panel tile's on/off state as a Routine
+  action.
 
 Full commit‑by‑commit diff: [compare view](https://github.com/Felip6499/PodSwitch/compare/main...Pablomx2:PodSwitch:main).
 
 ## Project status
 
-Personal, single‑maintainer, **v0.2.1**. The shared decision engine is fully
+Personal, single‑maintainer, **v0.2.2**. The shared decision engine is fully
 unit‑tested on all three platforms (macOS, Android, Windows). macOS and the Windows
 connect are validated on real hardware (the Windows switch is just slower — see
 *Switch speed*). Issues and PRs are welcome but support is best‑effort.
