@@ -4,43 +4,28 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    android:background="@drawable/widget_bg_off">
+    android:gravity="center"
+    android:background="@drawable/widget_bg_off"
+    android:paddingHorizontal="20dp"
+    android:contentDescription="@string/widget_toggle_desc">
 
-    <!-- Left half: toggles PodSwitch on/off. Full-height/width tap target, not just the icon. -->
-    <LinearLayout
-        android:id="@+id/widget_toggle_zone"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:gravity="center">
+    <ImageView
+        android:id="@+id/widget_icon"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:src="@drawable/ic_widget_bulb"
+        android:importantForAccessibility="no" />
 
-        <ImageView
-            android:id="@+id/widget_icon"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:src="@drawable/ic_qs_podswitch"
-            android:contentDescription="@string/widget_toggle_desc" />
-
-    </LinearLayout>
-
-    <!-- Right half: opens the app. Full-height/width tap target, not just the label. -->
-    <LinearLayout
-        android:id="@+id/widget_open_zone"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:gravity="center">
-
-        <TextView
-            android:id="@+id/widget_state"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/widget_state_off"
-            android:textColor="#FFFFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:contentDescription="@string/widget_open_desc" />
-
-    </LinearLayout>
+    <TextView
+        android:id="@+id/widget_state"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:text="@string/widget_state_off"
+        android:textAllCaps="true"
+        android:textColor="#FFFFFFFF"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:importantForAccessibility="no" />
 
 </LinearLayout>

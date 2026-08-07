@@ -12,7 +12,7 @@ AirPods auto‑switching, but for *any* headphones and *any* devices you choose.
 ![Android](https://img.shields.io/badge/Android-8.0%2B%20(API%2026)-06B6D4)
 ![Windows](https://img.shields.io/badge/Windows-10%2F11-06B6D4)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/status-0.2.4%20·%20personal%20project-orange)
+![Status](https://img.shields.io/badge/status-0.2.5%20·%20personal%20project-orange)
 
 </div>
 
@@ -241,12 +241,16 @@ plumbing. Everything below was added in this fork, on top of that baseline:
 - **Android: full-width widget tap zones (v0.2.4).** The widget's two actions (toggle,
   open app) now each fill their full half of the widget instead of just the icon/label,
   making them easier to hit.
+- **Android: widget redesigned as a single toggle (v0.2.5).** Restyled as a gradient pill
+  with a circled‑lightbulb icon, matching the reference mockups. Dropped the two-zone
+  tap split from v0.2.4 — the whole widget is one tap target that toggles on/off; opening
+  the app from the widget is no longer supported.
 
 Full commit‑by‑commit diff: [compare view](https://github.com/Felip6499/PodSwitch/compare/main...Pablomx2:PodSwitch:main).
 
 ## Project status
 
-Personal, single‑maintainer, **v0.2.4**. The shared decision engine is fully
+Personal, single‑maintainer, **v0.2.5**. The shared decision engine is fully
 unit‑tested on all three platforms (macOS, Android, Windows). macOS and the Windows
 connect are validated on real hardware (the Windows switch is just slower — see
 *Switch speed*). Issues and PRs are welcome but support is best‑effort.

@@ -8,13 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
 import com.podswitch.platform.AndroidSettingsStore
-import com.podswitch.ui.ConfigActivity
 
-/**
- * 1x1 home-screen widget with two tap zones: the icon toggles PodSwitch on/off, the state label
- * opens the app (there's no OS hook to redirect a Quick Settings tile's long-press to the app, so
- * this widget is the one-tap path there).
- */
+/** Home-screen widget: tap anywhere to toggle PodSwitch on/off. */
 class PodSwitchWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, manager: AppWidgetManager, appWidgetIds: IntArray) {
@@ -62,16 +57,7 @@ class PodSwitchWidgetProvider : AppWidgetProvider() {
                 toggleIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
-            views.setOnClickPendingIntent(R.id.widget_toggle_zone, togglePending)
-
-            val openIntent = Intent(context, ConfigActivity::class.java)
-            val openPending = PendingIntent.getActivity(
-                context,
-                1,
-                openIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-            views.setOnClickPendingIntent(R.id.widget_open_zone, openPending)
+            views.setOnClickPendingIntent(R.id.widget_root, togglePending)
 
             return views
         }

@@ -48,5 +48,4 @@
     <string name="widget_state_on">On</string>
     <string name="widget_state_off">Off</string>
     <string name="widget_toggle_desc">Toggle PodSwitch on or off</string>
-    <string name="widget_open_desc">Open PodSwitch</string>
 </resources>
