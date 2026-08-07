@@ -12,7 +12,7 @@ AirPods auto‑switching, but for *any* headphones and *any* devices you choose.
 ![Android](https://img.shields.io/badge/Android-8.0%2B%20(API%2026)-06B6D4)
 ![Windows](https://img.shields.io/badge/Windows-10%2F11-06B6D4)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/status-0.2.8%20·%20personal%20project-orange)
+![Status](https://img.shields.io/badge/status-0.2.9%20·%20personal%20project-orange)
 
 </div>
 
@@ -254,12 +254,17 @@ plumbing. Everything below was added in this fork, on top of that baseline:
 - **Android: updated widget artwork (v0.2.8).** Swapped in the higher‑resolution
   "widget-icon" pill PNGs (1120×528, losslessly re‑compressed to cut their footprint by
   ~70%) in place of the original assets.
+- **Android: widget rebuilt as vector art (v0.2.9).** Raster PNGs are gone; the pill,
+  gradient, and bulb icon are now Android vector drawables, so the widget scales to any
+  launcher's grid cell with zero cropping and zero letterboxing. The supplied vector's
+  hand‑drawn "ON" lettering had broken stroke geometry (confirmed by rendering it in
+  isolation), so both states now render "ON"/"OFF" as real system‑font text instead.
 
 Full commit‑by‑commit diff: [compare view](https://github.com/Felip6499/PodSwitch/compare/main...Pablomx2:PodSwitch:main).
 
 ## Project status
 
-Personal, single‑maintainer, **v0.2.8**. The shared decision engine is fully
+Personal, single‑maintainer, **v0.2.9**. The shared decision engine is fully
 unit‑tested on all three platforms (macOS, Android, Windows). macOS and the Windows
 connect are validated on real hardware (the Windows switch is just slower — see
 *Switch speed*). Issues and PRs are welcome but support is best‑effort.

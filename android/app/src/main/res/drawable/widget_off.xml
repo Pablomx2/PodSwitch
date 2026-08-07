@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget OFF background: capsule + gradient + bulb icon from the provided asset, with the
+     hand-drawn "OFF" letterforms removed in favor of real text (see widget_podswitch.xml).
+     The source vector's "N" glyph in the ON asset had broken stroke geometry, so letters are
+     rendered as text everywhere for consistency and to avoid the same risk here. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="280dp"
+    android:height="132dp"
+    android:viewportWidth="280"
+    android:viewportHeight="132">
+  <path android:pathData="M50,0 H230 A50,50 0 0 1 280,50 V82 A50,50 0 0 1 230,132 H50 A50,50 0 0 1 0,82 V50 A50,50 0 0 1 50,0 Z">
+    <aapt:attr name="android:fillColor">
+      <gradient
+          android:type="linear"
+          android:startX="0" android:startY="0"
+          android:endX="280" android:endY="132"
+          android:startColor="#D9D4EC"
+          android:centerColor="#B7B0D6"
+          android:centerX="0.5" android:centerY="0.5"
+          android:endColor="#8983AD"/>
+    </aapt:attr>
+  </path>
+  <group android:translateX="44" android:translateY="36" android:scaleX="2.5" android:scaleY="2.5">
+    <path android:pathData="M22,12 A10,10 0 1 1 2,12 A10,10 0 1 1 22,12 Z" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="1.6"/>
+    <path android:pathData="M15.6,9.6 A3.6,3.6 0 1 1 8.4,9.6 A3.6,3.6 0 1 1 15.6,9.6 Z" android:fillColor="#FFFFFF"/>
+    <path android:pathData="M11.2,13 H12.799999999999999 A1,1 0 0 1 13.799999999999999,14 V14.6 A1,1 0 0 1 12.799999999999999,15.6 H11.2 A1,1 0 0 1 10.2,14.6 V14 A1,1 0 0 1 11.2,13 Z" android:fillColor="#FFFFFF"/>
+    <path android:pathData="M11.25,16 H12.749999999999998 A0.65,0.65 0 0 1 13.399999999999999,16.65 V16.650000000000002 A0.65,0.65 0 0 1 12.749999999999998,17.3 H11.25 A0.65,0.65 0 0 1 10.6,16.650000000000002 V16.65 A0.65,0.65 0 0 1 11.25,16 Z" android:fillColor="#FFFFFF"/>
+  </group>
+</vector>

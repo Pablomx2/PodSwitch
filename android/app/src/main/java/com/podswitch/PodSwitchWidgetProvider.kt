@@ -38,9 +38,14 @@ class PodSwitchWidgetProvider : AppWidgetProvider() {
 
         private fun buildViews(context: Context, enabled: Boolean): RemoteViews {
             val views = RemoteViews(context.packageName, R.layout.widget_podswitch)
-            views.setImageViewResource(
-                R.id.widget_image,
+            views.setInt(
+                R.id.widget_root,
+                "setBackgroundResource",
                 if (enabled) R.drawable.widget_on else R.drawable.widget_off,
+            )
+            views.setTextViewText(
+                R.id.widget_state,
+                context.getString(if (enabled) R.string.widget_state_on else R.string.widget_state_off),
             )
 
             val toggleIntent = Intent(context, PodSwitchWidgetProvider::class.java).apply {
@@ -52,7 +57,7 @@ class PodSwitchWidgetProvider : AppWidgetProvider() {
                 toggleIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
-            views.setOnClickPendingIntent(R.id.widget_image, togglePending)
+            views.setOnClickPendingIntent(R.id.widget_root, togglePending)
 
             return views
         }

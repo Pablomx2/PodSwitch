@@ -1,8 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_image"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:scaleType="centerCrop"
-    android:src="@drawable/widget_off"
-    android:contentDescription="@string/widget_toggle_desc" />
+    android:orientation="horizontal"
+    android:weightSum="1"
+    android:background="@drawable/widget_off"
+    android:contentDescription="@string/widget_toggle_desc">
+
+    <!-- Reserves the space the bulb icon (baked into the background vector) occupies. -->
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="0.5" />
+
+    <TextView
+        android:id="@+id/widget_state"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="0.5"
+        android:gravity="start|center_vertical"
+        android:text="@string/widget_state_off"
+        android:textAllCaps="true"
+        android:textColor="#FFFFFFFF"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif-black"
+        android:letterSpacing="0.02"
+        android:importantForAccessibility="no" />
+
+</LinearLayout>
