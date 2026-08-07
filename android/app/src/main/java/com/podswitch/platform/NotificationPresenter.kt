@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import com.podswitch.MasterToggleReceiver
 import com.podswitch.R
 import com.podswitch.SwitchAcceptReceiver
 import com.podswitch.core.NotificationPresenter
@@ -39,8 +40,23 @@ class AndroidNotificationPresenter(
     }
 
     /** The ongoing notification shown by the foreground service. */
-    fun buildOngoing(peerActive: Boolean = false): Notification =
-        Notification.Builder(context, CHANNEL_SERVICE)
+    fun buildOngoing(peerActive: Boolean = false): Notification {
+        val toggleIntent = Intent(context, MasterToggleReceiver::class.java).apply {
+            action = MasterToggleReceiver.ACTION_DISABLE
+        }
+        val togglePending = PendingIntent.getBroadcast(
+            context,
+            REQUEST_TOGGLE,
+            toggleIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val toggleAction = Notification.Action.Builder(
+            null,
+            context.getString(R.string.ongoing_action_turn_off),
+            togglePending,
+        ).build()
+
+        return Notification.Builder(context, CHANNEL_SERVICE)
             .setContentTitle(context.getString(R.string.ongoing_title))
             .setContentText(
                 context.getString(
@@ -49,7 +65,9 @@ class AndroidNotificationPresenter(
             )
             .setSmallIcon(android.R.drawable.stat_sys_headset)
             .setOngoing(true)
+            .addAction(toggleAction)
             .build()
+    }
 
     /** Re-post the ongoing notification to reflect a change in peer-active status. */
     fun updateOngoing(peerActive: Boolean) {
@@ -96,5 +114,6 @@ class AndroidNotificationPresenter(
         const val ID_ASK = 2
 
         private const val REQUEST_ACCEPT = 100
+        private const val REQUEST_TOGGLE = 101
     }
 }
