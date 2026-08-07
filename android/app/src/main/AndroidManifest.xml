@@ -57,12 +57,32 @@
             android:name=".SwitchAcceptReceiver"
             android:exported="false" />
 
-        <!-- Quick Settings tile: toggle STEAL/ASK from the notification shade. -->
+        <!-- Turns PodSwitch off from the ongoing notification's action button. -->
+        <receiver
+            android:name=".MasterToggleReceiver"
+            android:exported="false" />
+
+        <!-- Home-screen widget: tap to toggle PodSwitch on/off. -->
+        <receiver
+            android:name=".PodSwitchWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_podswitch_info" />
+        </receiver>
+
+        <!-- The single Quick Settings tile PodSwitch offers: tap turns PodSwitch fully on/off,
+             with STEAL/ASK mode shown in its subtitle. Samsung Routines can drive this tile's
+             on/off state as a Routine action, so it's also the recommended Routines integration
+             point. -->
         <service
-            android:name=".ModeTileService"
+            android:name=".EnableTileService"
             android:exported="true"
             android:icon="@drawable/ic_qs_podswitch"
-            android:label="@string/qs_tile_label"
+            android:label="@string/qs_enable_tile_label"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />

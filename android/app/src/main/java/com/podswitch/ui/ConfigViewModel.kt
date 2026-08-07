@@ -1,11 +1,9 @@
 package com.podswitch.ui
 
 import android.app.Application
-import android.content.Intent
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.podswitch.SwitchService
+import com.podswitch.PodSwitchControl
 import com.podswitch.core.Category
 import com.podswitch.core.Config
 import com.podswitch.core.Mode
@@ -56,14 +54,14 @@ class ConfigViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            settings.setEnabled(enabled)
-            if (enabled) startService() else stopService()
-        }
+        PodSwitchControl.setEnabled(getApplication(), enabled)
     }
 
     fun setMode(mode: Mode) {
-        viewModelScope.launch { settings.setMode(mode) }
+        viewModelScope.launch {
+            settings.setMode(mode)
+            PodSwitchControl.refreshEnableTile(getApplication())
+        }
     }
 
     fun setCategoryEnabled(category: Category, enabled: Boolean) {
@@ -76,15 +74,5 @@ class ConfigViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setYieldToOtherSource(enabled: Boolean) {
         viewModelScope.launch { settings.setYieldToOtherSource(enabled) }
-    }
-
-    private fun startService() {
-        val app = getApplication<Application>()
-        ContextCompat.startForegroundService(app, Intent(app, SwitchService::class.java))
-    }
-
-    private fun stopService() {
-        val app = getApplication<Application>()
-        app.stopService(Intent(app, SwitchService::class.java))
     }
 }

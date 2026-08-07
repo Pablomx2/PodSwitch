@@ -12,6 +12,7 @@
     <string name="ongoing_title">PodSwitch active</string>
     <string name="ongoing_text">Watching for audio to move to the target Bluetooth device.</string>
     <string name="ongoing_text_peer_active">Peer device is actively playing — holding off on switching.</string>
+    <string name="ongoing_action_turn_off">Turn off</string>
 
     <!-- Ask notification -->
     <string name="ask_title">Move audio here?</string>
@@ -34,8 +35,18 @@
     <string name="ui_battery_hint">Tip: exempt PodSwitch from battery optimization so it keeps running in the background.</string>
     <string name="ui_battery_button">Battery settings</string>
 
-    <!-- Quick Settings tile -->
-    <string name="qs_tile_label">PodSwitch</string>
+    <!-- Quick Settings tile: on/off toggle, subtitle shows the current STEAL/ASK mode. Also the
+         Samsung Routines integration point. -->
+    <string name="qs_enable_tile_label">PodSwitch On/Off</string>
+    <string name="qs_enable_on_with_mode">On · %1$s</string>
+    <string name="qs_enable_off">Off</string>
     <string name="qs_mode_steal">Steal · auto-switch</string>
     <string name="qs_mode_ask">Ask first</string>
+
+    <!-- Home screen widget -->
+    <string name="widget_description">Toggle PodSwitch on or off</string>
+    <string name="widget_state_on">On</string>
+    <string name="widget_state_off">Off</string>
+    <string name="widget_toggle_desc">Toggle PodSwitch on or off</string>
+    <string name="widget_open_desc">Open PodSwitch</string>
 </resources>
