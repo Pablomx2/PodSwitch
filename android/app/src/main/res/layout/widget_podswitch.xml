@@ -3,10 +3,11 @@
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:orientation="horizontal"
     android:gravity="center"
     android:background="@drawable/widget_bg_off"
-    android:padding="8dp">
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="8dp">
 
     <ImageView
         android:id="@+id/widget_icon"
@@ -19,10 +20,10 @@
         android:id="@+id/widget_state"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginStart="10dp"
         android:text="@string/widget_state_off"
         android:textColor="#FFFFFFFF"
-        android:textSize="12sp"
+        android:textSize="14sp"
         android:textStyle="bold"
         android:contentDescription="@string/widget_open_desc" />
 
