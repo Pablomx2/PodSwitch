@@ -62,7 +62,7 @@ class PodSwitchWidgetProvider : AppWidgetProvider() {
                 toggleIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
-            views.setOnClickPendingIntent(R.id.widget_icon, togglePending)
+            views.setOnClickPendingIntent(R.id.widget_toggle_zone, togglePending)
 
             val openIntent = Intent(context, ConfigActivity::class.java)
             val openPending = PendingIntent.getActivity(
@@ -71,7 +71,7 @@ class PodSwitchWidgetProvider : AppWidgetProvider() {
                 openIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
-            views.setOnClickPendingIntent(R.id.widget_state, openPending)
+            views.setOnClickPendingIntent(R.id.widget_open_zone, openPending)
 
             return views
         }
